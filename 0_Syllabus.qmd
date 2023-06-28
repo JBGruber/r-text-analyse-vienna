@@ -1,0 +1,147 @@
+---
+title: "Workshop Automated Content Analysis"
+author: "Johannes B. Gruber"
+date: 2023-07-06
+format:
+  pdf:
+    toc: false
+bibliography: references.bib
+---
+
+# Overview {-}
+
+We are going to look at the different topics mostly from a practical standpoint with a little theoretical and statistical background where necessary.
+The course will deal with the following topics:
+
+```{r}
+#| message: false
+#| echo: false
+library(tidyverse)
+library(gt)
+# complete list of sessions, in the workshop I can only do some of them
+lessons <- list(
+  `1.` = "[Overview, Background and some Theory](#overview-background-and-some-theory)",
+  `2.` = "[R Basics repetition](#r-basics)",
+  `3.` = "[Obtaining Text Data](#obtaining-text-data)",
+  `4.` = "[Dictionary methods](#dictionary-methods)",
+  `5.` = "[Text Scaling and Regression Models](#text-scaling-and-regression-models)",
+  `6.` = "[Text Correlations (co-occurrence analysis)](#correlations)",
+  `7.` = "[Supervised Classification Methods](#supervised-classification-methods)",
+  `8.` = "[Unsupervised Classification Methods](#unsupervised-classification-methods)",
+  `9.` = "[Text Pre-Processing](#text-pre-processing)",
+  `10.` =" [Regular Expressions, String Hacking, Part-of-Speech Tagging](#regular-expressions-string-hacking-part-of-speech-tagging)",
+  `11.` = "[Word Embeddings](#word-embeddings)",
+  `13.` = "[Deep Learning](#deep-learning)",
+  `14.` = "[Big Data Projects: Some Tips](#big-data-projects-some-tips)"
+)
+
+
+tibble::tribble(
+  ~Time, ~`Day 1`,	~`Day 2`,
+  "09:00-10:30",	lessons[[3]],	lessons[[11]],
+  "11:00:12:30",	lessons[[5]],	lessons[[12]],
+  "14:00-15:30",	lessons[[7]],	lessons[[13]]
+) %>%
+  gt() %>%
+  fmt_markdown(columns = everything())
+```
+
+
+# Introduction {-}
+
+The availability of text data has exploded in the last two decades.
+First the availability of text through digital archives, then the advent of digital media communication like online news and press releases and most recently public communication of non-elite actors on social media.
+For political and communication science this opens up exciting new possibilities for research as many processes which occurred in private or elite venues in the past are now accessible.
+At the same time, the sheer amount of data makes manually analysing meaningful fractions of it impossible.
+
+This course is an introduction to the available methods and R packages for automated content analysis.
+However, the introductory part is into automated content analysis while the expectation is that you are comfortable with R, the programming language used in this course.
+
+What should be clear about the course from the beginning though is that despite recent advances, "All Quantitative Models of Language Are Wrong--But Some Are Useful" [@grimmerTextDataPromise2013 p.3].
+The primary goal of this course is thus to understand the types of questions we can ask with text, and how to go about answering them.
+
+
+# Obtaining Text Data
+
+There are a myriad of ways to analyse text in `R`.
+If you ever want to make use of them though you have to somehow get your own data into `R`.
+This can be challenging depending on how you receive the data, so it makes sense to go over it at the beginning.
+If you already have some data in mind that you want to test your new skills on later, bring them to class.
+But don't worry, we'll find something interesting to work on for you.
+
+Key Points:
+
+- Reading in common file formats (txt, PDF, docx and so on).
+- Case 1: Obtaining of news data
+- Case 2: Web-Scraping (some a brief pointers)
+- Case 3: Talking to APIs
+- Case 4: Whatsapp data
+
+Readings:
+
+- none; but think about what sources of text data you want to use and bring it along if possible.
+
+
+# Text Scaling and Regression Models
+
+One of the fundamental ideas of ACA is that text is just another form of data.
+Once we obtain text and turn it into a document-term-matrix, it is not fundamentally different from other forms of statistical data any more.
+Therefore we can perform all sorts of statistical analysis on it -- like regressions.
+In political science, this fact inspired a technique called ideological scaling -- one of the few methods discussed here that did not originate in statistics or computer science.
+The idea is to project texts (and by proxy the respective authors) onto a one- or two-dimensional space, often interpreted as a left-right political spectrum.
+
+Additional Readings:
+
+1. Supervised Machine Learning for Text Analysis in R [6](https://smltar.com/mlregression.html) [@SilgeMachineLearning2021]
+2. A Scaling Model for Estimating Time Series Party Positions from Texts [@slapinWordfish2008]
+
+
+# Supervised Classification Methods
+
+The idea behind supervised classification or supervised learning approaches is that you train a model to emulate the behaviour of a human coder. 
+Specifically, a human classifies texts into categories, such as positive/negative tone, spam/important emails and so on.
+By analysing the statistical distribution of words in the two or more categories, a model can predict the class of new unclassified material.
+
+Readings: 
+
+- Supervised Machine Learning for Text Analysis in R
+[7](https://smltar.com/mlclassification.html) [@SilgeMachineLearning2021]
+
+
+# Word Embeddings
+
+This session introduces newer advances of text analysis that go beyond traditional bag-of-words models.
+Word embeddings are a way to represent words as vectors that capture their semantic meaning, and deep learning models use neural networks to process and analyze text data.
+Students will learn about popular word embedding algorithms like Word2Vec and GloVe, as well as popular deep learning models for text analysis like CNNs and RNNs.
+Through demonstrations, students will learn how to use pre-trained word embeddings and implement simple deep learning models for text classification.
+The session will also explore real-world applications of these techniques in areas like sentiment analysis and text classification.
+
+
+Addional Readings: 
+
+- Supervised Machine Learning for Text Analysis in R
+[8-10](https://smltar.com/mlclassification.htmlhttps://smltar.com/dldnn.html) [@SilgeMachineLearning2021]
+
+# Deep Learning
+
+Deep learning is a subfield of machine learning that deals with algorithms inspired by the structure and function of the human brain, called artificial neural networks (ANNs). 
+It has become especially prominent since the transformer deep learning architecture has been introduced by @transformer2017.
+Since then [large language models](https://en.wikipedia.org/wiki/Large_language_model#List_of_large_language_models) like BERT or GPT-3 (Generative Pre-trained Transformer 3) have outclassed previous approaches for text-as-data methods.
+This session will give an overview of some of the tools you need to use these models for your own analyses.
+These include:
+
+- [spaCy](https://spacy.io/usage/embeddings-transformers)
+- [simpletransformers](https://github.com/ThilinaRajapakse/simpletransformers)
+- [BERTopic](https://maartengr.github.io/BERTopic/algorithm/algorithm.html)
+
+# Big Data Projects: Some Tips
+
+In the final session, we will focus on some general tips when running models that take longer than a few seconds to converge.
+These include:
+
+- a good workflow with quarto documents
+- "piloting" analysis steps
+- running analysis on cloud infrsturcture
+
+
+# References {-}

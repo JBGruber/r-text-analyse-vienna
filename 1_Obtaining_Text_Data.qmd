@@ -1,0 +1,397 @@
+---
+title: "Session 3: Obtaining Text Data"
+subtitle: "Textanalyse in R: eine Einführung"
+author: "Johannes B. Gruber"
+date: "2023-03-27"
+format:
+  html:
+    toc: true
+    toc-location: left
+bibliography: references.bib
+---
+
+# Introduction
+
+In this session we focus on a task that often gets overlooked in introductions to text analysis: obtaining the data you want to work with.
+Of course, there is a myriad of data sources and we can't cover every possible way to retrieve and clean your specific data source.
+But we will focus on a few best practices and examples.
+Specifically we discuss how to read different file formats into `R`, how to web-scrape simple websites and how to get data from twitter.
+
+# File Formats
+
+The file format tells us how the information is stored inside the file.
+Usually the file format is revealed to us through the file extension (e.g., "file.txt" -> the extension is "txt" which means it is a text file).
+Annoyingly, Windows hides the file extension by default since the last few iterations of the operating system.
+I would suggest you change that default if you can't see the file extensions already ([see here for an how-to](https://support.winzip.com/hc/en-us/articles/115011457948-How-to-configure-Windows-to-show-file-extensions-and-hidden-files)).
+
+From my experience your data will probably come in one of the formats below
+
+- **txt**: simple text file; use e.g., built-in `readLines()` command; often needs to be *parsed*, that means brought into a more useful structure first; if you are lucky, someone has written a function/package to parse your specific txt already (e.g., `LexisNexisTools::lnt_read()` for files from the newspaper archive LexisNexis or `rwhatsapp::rwa_read()` for chat logs from WhatsApp); watch out for file encoding! 
+- **docx**: The format used by Microsoft Word; use e.g., `readtext()` from the `readtext` package; usually needs to be *parsed* as well.
+- **rft**: stands for Rich Text Format, which is the predecessor of/alternative for docx; you might consider opening it in Word and saving it as docx, otherwise use `read_rtf()` from the `striprtf` package.
+- **csv**: stands for Comma-separated values, which is basically a text file in which values are stored separated by comma to represent rows and columns; one of the formats natively supported by `R` via the `read.csv()` command; recommendation, however, to use either `import()` from the `rio` package or `fread()` from `data.table` as they have better defaults and manage to get it right more often; problems can arise from different encodings, quote symbols like `"`, different separators (, or ; or tab), or an inconsistent number of columns.
+- **xlsx**: The format used by Microsoft Excel for rectangular data; use `import()` from the `rio` package or `read_xlsx()` from `readxl` (which is basically the same but gives you more options to fine-tune); problems arise from data stored in wrong class (e.g., numbers stored as date or character) and the fact that a file can contain multiple sheets (in which case you have to make sure you read in the correct one). 
+- **pdf**: stands for Portable Document Format; relevant data is usually stored in two layers: a picture of text you see and underlying text in machine readable format; if the latter layer is missing, you have to perform optical character recognition (OCR); you can check by trying to select text in the document and copying it; if the PDF contains text and pictures use `pdf_text()` or `pdf_data()` from `pdftools`; otherwise use `pdftools::pdf_ocr_text()`; if the file is password protected, there are websites which can remove this protection (assuming you were given permission from the owner of the PDF to remove the password).
+- **json**: a format which can contain complicated nested objects; usually you encounter this when receiving data from API calls; you can try to read it using `stream_in()` or `read_json()` from the `jsonlite` package or reading it via `readLines()` and trying to parse the complicated mess; if you are lucky, someone has wrote a function to parse you specific json already (e.g., `rtweet::parse_stream()` for files from Twitter).
+- **xml**: stands for Extensible Markup Language; similar to json as it embeds meta information along with the text data; I never encountered it in real life but if you do, the `xml2` package is the one you should usually use.
+- **html**: the format most of the internet is written in; you encounter this when you download a website and more often during webscraping; some examples below.
+
+Examples:
+
+```{r}
+txt <- readLines("./data/LexisNexis_example.TXT")
+head(txt)
+```
+
+Not so useful.
+Instead we can use:
+
+```{r}
+library(LexisNexisTools)
+dat <- lnt_read("./data/LexisNexis_example.TXT")
+df <- lnt_convert(dat)
+df
+```
+
+This format is usually what we want:
+One column of text with metadata stored alongside.
+That does not necessarily mean that we have to have a `data.frame` though.
+`quanteda` for example stores this information in a `corpus` object:
+
+```{r}
+library(quanteda)
+corp <- lnt_convert(dat, to = "quanteda")
+docvars(corp)
+texts(corp) %>% 
+  head(3)
+```
+
+One example for TXT files which are a lot of fun to play around with are WhatsApp chat logs.
+You can follow this introduction I wrote a while ago to practice: <https://github.com/JBGruber/rwhatsapp#demo>
+
+Here is an example of a docx file:
+
+```{r}
+df <- readtext::readtext("./data/Notes.docx")
+df
+```
+
+In contrast, csv and xlsx data usually already come in a table format
+
+```{r}
+csv <- data.table::fread("https://raw.githubusercontent.com/kbenoit/ITAUR-Short/master/data/inaugTexts.csv")
+head(csv)
+```
+
+Notice that we read this one directly from a URL without downloading it.
+This is supported by many `R` function (but not all).
+
+One of the most flexible and also most annoying formats to work with is json.
+Here is an example:
+
+```{r}
+#| error: true
+json <- jsonlite::read_json("https://github.com/kbenoit/ITAUR-Short/raw/master/data/sotu.json")
+```
+
+You often get this error when trying to read json files.
+If you look at it, you see that newlines where used in this.
+This means we have a JSON Lines file that uses one line per data row.
+We can read this like so:
+
+```{r}
+json <- jsonlite::stream_in(con = url("https://github.com/kbenoit/ITAUR-Short/raw/master/data/sotu.json"))
+head(json)
+```
+
+The file is converted to a `data.frame` which is done automatically where possible.
+Otherwise you will get a list that might need a lot of data wrangling before it becomes useful.
+
+A tricky one is PDF files.
+I would highly recommend `pdftools` to do the job, but it does not always work well...
+
+```{r}
+library(pdftools)
+download.file("https://www.justice.gov/storage/report.pdf", "./data/report.pdf")
+mueller <- pdf_text("./data/report.pdf")
+head(mueller)
+```
+
+This imports every page as one item of a character object.
+If you want a finer grained information about the visual context of words, you can use another command from the same package:
+
+```{r}
+mueller2 <- pdf_data("./data/report.pdf")
+mueller2[[1]]
+```
+
+The structure of this object is that each page is a `data.frame` with each row containing a word with some extra information about it (width, height of the word & position on page from left upper corner of the page).
+This is useful if you want to extract e.g., paragraphs from a page (which only really works if there is extra space after a paragraph).
+
+# Webscraping
+
+## Getting information about the Computational Communication Science Lab
+
+```{r}
+library(rvest)
+base_url <- "https://compcommlab.univie.ac.at/"
+ccs_lab <- read_html(paste0(base_url, "team/"))
+
+l1 <- ccs_lab |> 
+  html_elements(".level1") |> 
+  html_attr("href")
+
+links <- map(l1, function(l) {
+  read_html(paste0(base_url, l)) |> 
+    html_elements(".level3") |> 
+    html_attr("href")
+}, .progress = TRUE) |> 
+  unlist() |> 
+  na.omit() |> 
+  unique()
+
+ccs_lab_team <- map(links, function(l) {
+  main <- read_html(paste0(base_url, l)) |> 
+    html_elements(".col-sm-12")
+  
+  person <- main |> 
+    html_elements("h3") |> 
+    html_text2() |> 
+    unique()
+  
+  description <- main |> 
+    html_elements("p") |> 
+    html_text2() |> 
+    paste0(collapse = "\n")
+  
+  tibble(id = l, person, description)
+}, .progress = TRUE) |> 
+  bind_rows()
+```
+
+```{r}
+library(quanteda)
+library(quanteda.textplots)
+ccs_lab_team |> 
+  corpus(
+    docid_field = "id",
+    text_field = "description"
+  ) |> 
+  tokens(remove_punct = TRUE) |> 
+  dfm() |> 
+  dfm_trim(min_termfreq = 0.2, termfreq_type = "quantile") |> 
+  textplot_wordcloud()
+```
+
+
+## Scraping news from Breitbart:
+
+First step: obtain the URLs of relevant articles using Google with search operator "site:" to limit the search to Breitbart news:
+
+![](media/breitbart_search.png)
+
+```{r}
+library(stringr)
+library(tibble)
+
+link <- "https://www.breitbart.com/europe/2020/02/22/boris-johnson-reveals-new-brexit-blue-passport-design/"
+
+html <- read_html(link)
+
+headline <- html %>%
+  html_elements("header>h1") %>%
+  html_text()
+
+time <- html %>%
+  html_elements("time") %>%
+  html_attr("datetime") %>%
+  lubridate::ymd_hms()
+
+author <- html %>%
+  html_elements("[name=\"author\"]") %>%
+  html_attr("content")
+
+article <- html %>%
+  html_elements(".entry-content") %>%
+  html_text() %>%
+  str_replace("\\s+", " ") %>%
+  trimws()
+
+bb <- tibble(
+  source = link,
+  time = time,
+  author = ifelse(length(author) == 0, "", author),
+  headline = headline,
+  article = article
+)
+bb
+```
+
+A great way to get started with scraping is by learning more about CSS selectors with the game [CSS Diner](https://flukeout.github.io/).
+
+## MediaCloud & The paperboy package
+
+An easy way to search is using Mediacloud.
+Register for a MediaCloud account [here](https://search.mediacloud.org/sign-up).
+Then you can get an API token from [here](https://search.mediacloud.org/account).
+
+```{r}
+library(mediacloud)
+search_media("huffpost")
+test_data <- search_stories(title = "*",
+                            media_id = 27502,
+                            after_date = Sys.Date() - 7,
+                            n = 500)
+```
+
+Mediacloud give you access to document-feature-matrices (but not full texts).
+
+```{r}
+wm <- get_word_matrices(stories_id = test_data$stories_id[1:3])
+wm
+```
+
+You can already do some unsupervised learning with this.
+However, for many tasks, you need the full texts.
+Which is where paperboy comes in handy.
+It is a collection of webscrapers and a robust backend for downloading data. 
+This makes it useful to get larger datasets.
+
+```{r}
+data_huff <- test_data |> 
+  pull() |> 
+  pb_collect() |> 
+  pb_deliver()
+```
+
+A special parsing script needs to be written for most new sites (some work with a default parser).
+I'm collecting scrapers, so if you feel confident enough to write your own, have a look at my vignette for developers [here](https://github.com/JBGruber/paperboy/blob/main/vignettes/For_Developers.Rmd) and become a co-author of the package!
+
+# Social Media Data
+
+## ~~Data from Twitter~~
+
+## ~~Data from Reddit~~
+
+## Data from Kaggle
+
+[![](media/kaggle.png)](https://www.kaggle.com/datasets/konradb/iran-protests-2022-tweets?resource=download)
+
+```{r}
+file_iran_tweets <- "data/iran_tweets.csv.zip"
+if (!file.exists(file_iran_tweets)) {
+  curl::curl_download("https://www.dropbox.com/s/kymkteu6vpf85ef/iran_tweets.csv.zip?dl=1", file_iran_tweets)
+}
+iran_tweets <- rio::import(file_iran_tweets)
+```
+
+```{r}
+iran_tweets_clean <- iran_tweets %>% 
+  mutate(created_at = lubridate::ymd_hms(date),
+         date = as.Date(created_at))
+```
+
+```{r}
+iran_tweets_clean %>% 
+  count(date) %>% 
+  ggplot(aes(x = date, y = n)) +
+  geom_line()
+```
+
+
+# Talking to APIs
+
+A quick example using the API of the newspaper the Guardian.
+To use the API, you first need to obtain an API key by filling out a small form [here](
+https://bonobo.capi.gutools.co.uk/register/developer).
+The API key should arrive within seconds per mail.
+
+To figure out how to use the API, we can use its [documentation}(https://open-platform.theguardian.com/documentation/)
+The way the API is designed is not very common as all parameters are sent via the URL.
+But it makes the API very easy to use!
+We can use the nice `httr2` to build a request to the API:
+
+```{r}
+library(httr2)
+base_url <- "https://content.guardianapis.com"
+req <- request(base_url) |> 
+  req_url_path("search") |> 
+  req_url_query(q = "parliament AND debate",
+                "show-blocks" = "all",
+                "api-key" = "d187828f-9c6a-4c29-afd4-dbd43e116965")
+```
+
+This doesn't yet do anything until you also perform it.
+In this case, we know that we will receive the data in the json format, which we can immediately parse;
+
+```{r}
+resp <- req_perform(req) |> 
+  resp_body_json()
+```
+
+In the response, we now get some useful information about the the result.
+
+```{r}
+resp[["response"]][["total"]]
+resp[["response"]][["pageSize"]]
+resp[["response"]][["pages"]]
+```
+
+So far we only got the results for page 1, which is a common way to return results from an API.
+To get to the other pages that contain results, we would need to loop through all of these pages.
+For now, we can have a closer look at the articles on the first results page.
+
+```{r}
+search_res <- resp[["response"]][["results"]]
+```
+
+We can have a closer look at this using the Viewer in RStudio:
+
+```{r}
+#| eval: false
+View(search_res)
+```
+
+In typical fashion, this API returns the data in a very complicated format.
+This is probably the main reason why people dislike working with APIs in R, as it can be very frustrating to get this into a format that makes sense for us.
+Let's select just some important information.
+
+```{r}
+map(search_res, function(res) {
+  tibble(
+    id = res$id,
+    type = res$type,
+    time = lubridate::ymd_hms(res$webPublicationDate),
+    headline = res$webTitle,
+    text = read_html(res[["blocks"]][["body"]][[1]][["bodyHtml"]]) |> html_text2()
+  )
+}) |> 
+  bind_rows()
+```
+
+## Let's make it personal: WhatsApp Data
+
+You might not be aware, but you can download your conversations in WhatsApp using the App:
+
+<img src="man/figures/1.jpg" width="250" /> <img src="man/figures/2.jpg" width="250" /> <img src="man/figures/3.jpg" width="250" />
+
+Playing with this data can be great fun, as I showed [here](https://github.com/JBGruber/rwhatsapp).
+To get the data into R, you only need one line
+
+```{r}
+#| eval: false
+library(rwhatsapp)
+chat_data <- rwa_read("/home/johannes/Dropbox/WhatsApp Chat with Alexandra Ils.txt")
+chat_data |> 
+  filter(!is.name(author)) |> 
+  mutate(date = as.Date(time)) |> 
+  count(date, author) |> 
+  ggplot(aes(x = date, y = n, colour = author)) +
+  geom_line()
+```
+
+
+# exercise
+
+For the next 10 minutes: find data that interests you and load it into R.
+
