@@ -1,0 +1,699 @@
+---
+title: "R basics and Refresher"
+author: "Johannes B. Gruber"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document:
+    number_sections: true
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+self_contained: no
+bibliography: references.bib
+---
+
+# Introduction
+
+In this course we use the `R` programming language to do text analysis.
+This is a quick run-through of some basic principles in `R`. 
+I expect that you have worked with `R` before and can already do some things.
+But even after using `R` for a while it doesn't hurt to go over some fundamentals and clear out common misunderstandings of the language.
+
+# Some basics
+
+`R` organises its functions in packages (even base functions, see next section).
+These are called with the function `library`, usually at the beginning of a script (leading some people to incorrectly refer to packages as libraries).
+Before you can load a package you have to install it.
+There are two principle source for packages.
+One is the Comprehensive R Archive Network (CRAN), the other one is GitHub.
+The difference is that developers publish to CRAN less often (usually only when a significant improvement has been made to a package) and that some very new packages are not available on GitHub yet (others will never be available on CRAN).
+
+To install a package from CRAN you have to call this command:
+
+```{r eval=FALSE}
+install.packages("tidyverse")
+```
+
+To install packages from GitHub, we use the package `remotes` (which has to be installed on your computer):
+
+```{r eval=FALSE}
+library(remotes)
+install_github("JBGruber/highlightr")
+```
+
+The example above is an experimental package which I'm working on now.
+The reason it is not on CRAN is that besides a very basic functionality, there are some major problems that need to be solved before it is actually useful.
+
+If you don't want to load an entire package, for example since you only want to use one function from it, you can use `::` instead.
+
+```{r eval=FALSE}
+remotes::install_github("JBGruber/highlightr")
+```
+
+One of the most important command in `R` is the `?` though:
+
+```{r eval=FALSE}
+?install.packages # And
+?remotes::install_github
+```
+
+This opens the help window (you can also use the help pane in RStudio).
+
+All help files in `R` follow the same structure and principle (although not all help file contain all elements):
+
+- **Title**
+- **Description**
+- **Usage**: This is very important as it shows you the default values for all arguments. If you do not provide a value to a function this will be used automatically. The default for `dependencies` in `install.packages` for example is `NA`, which means all dependencies, suggestions and linked packages will be installed along the chosen package. Most functions require you to set at leas one value but developers aim to set sensible defaults for the remaining arguments. These defaults might not be the best option in your specific situation though. Note that the order in which you provide arguments is not important if you explicitly name them (e.g., ``install.packages(pkgs = "tidyverse", dependencies = TRUE)` and `install.packages(dependencies = TRUE, pkgs = "tidyverse")` will do the same). But if you do not mention the name of an argument, the order of the usage field is used to make sense of your input.
+- **Arguments**: This is a description of which values are allowed for the arguments in a function. On the left hand side is the name of an argument while the details about it are on the right. One special argument is the `...` (called ellipsis or dots). This field can be used to supply arguments to underlying functions. For example, `remotes::install_github` is built on top of `install.packages`. The dots are passed on to that function so that the following would work, event though `lib` is not an argument in `install_github`: `remotes::install_github("JBGruber/highlightr", lib = "C:/Program Files/R/R-3.6.1/library")`.
+- **Details**: Usually not that important but this is the first place to look when a function is not doing what you expect it to do since the developer might have left some clues here what the problem is.
+- **Examples**: This is where I usually start to learn a new function by looking at cases that certainly work. Rewriting one of the examples to work with your data is usually all it takes to make use of a command. (if you see something like `## Not run: ` in the example, don't worry about that, it only means the developer has chosen not to run an example in the regular tests each package has to go through regularly on the CRAN servers.)
+
+For **questions about `R`** it usually makes sense to simply Google them.
+A form that has proven most reliable is something like:
+"remove legends **ggplot2 r**".
+Adding the language and package you are working with should usually get Google on the right track.
+Besides blog entries, the two best sources for answers are stackoverflow.com/ and the R help list (stat.ethz.ch/) which are both sites that collect user questions and answers.
+If you can't find an answer to your question it is possible that nobody has asked it before.
+In this case you should make an account on [stackoverflow.com](https://stackoverflow.com/) and ask your question.
+To get a good answer, check out this guide on [how to ask a good question](http://stackoverflow.com/help/how-to-ask).
+Most importantly, try to use a [reproducible example](http://stackoverflow.com/questions/5963269). This will make it much easier for others to help you.
+
+You can produce a reproducible example using the [reprex package](https://reprex.tidyverse.org/).
+If you have a big dataset, it usually makes sense to only post a short extract of it.
+One way to accomplish that is the `dput` command, which transforms your data into a command that can reproduce the data:
+
+```{r}
+df <- mtcars[1:3, ] # using the first few rows from a built-in example data.frame
+dput(df)
+```
+
+This can easily be read back into `R` by anyone who wants to help you:
+
+```{r}
+df <- structure(list(mpg = c(21, 21, 22.8), cyl = c(6, 6, 4), disp = c(160, 
+                                                                       160, 108), hp = c(110, 110, 93), drat = c(3.9, 3.9, 3.85), wt = c(2.62, 
+                                                                                                                                         2.875, 2.32), qsec = c(16.46, 17.02, 18.61), vs = c(0, 0, 1), 
+                     am = c(1, 1, 1), gear = c(4, 4, 4), carb = c(4, 4, 1)), row.names = c("Mazda RX4", 
+                                                                                           "Mazda RX4 Wag", "Datsun 710"), class = "data.frame")
+```
+
+# Functions
+
+Function are incredibly easy to define in `R`.
+The reason why you might want to use one is that you notice that you run the same few lines of code again and again.
+In this case you can define a function like that:
+
+```{r}
+new_fun <- function(x = 1) {
+  out <- c(
+    sum(x),
+    mean(x),
+    median(x)
+  )
+  return(out)
+}
+new_fun()
+vec <- c(1:10)
+new_fun(x = vec)
+```
+
+Going through this bit by bit:
+
+- **new_fun**: The name of the new function. This can be pretty much anything you want except that starting your function name with a number is trickier (and not advised) and you shouldn't use `.` in a function name (instead use `_` to indicate new words). The convention is also commonly to not use capital letters although some older function in `R` do this.
+- **<-**: The assignment operator as a function is created the same way as objects.
+- **function(x)**: This is the command to actually define a function. The variables inside the brackets are the arguments. You can define default arguments so that the function can be run with or without user input.
+- **{}**: Everything inside the rounded brackets is the body of the function and the code that is actually running when the function is called.
+- **return()**: All objects created inside the function are immediately destroyed when the function finished running except one object that you put inside the `return` command. The command does not have to be called explicitly though. In the above example, the last line of the function could also be just `out`.
+
+# Loops
+
+Another way to not run the same code again and again are loops.
+There are two basic forms of loops in `R`.
+`for`-loops and `apply`-loops.
+With `for`-loops you define one variable that changes on every iteration of the loop:
+
+```{r}
+x <- NULL
+for (i in 1:10) {
+  message(i)
+  x <- c(x, i)
+}
+x
+```
+
+- **for**: This is how you start the loop
+- **i**: This is the variable which takes a different value in each iteration of the loop
+- **in**: separates the variable from the vector
+- **1:10**: For loops evaluate a vector. Here I defined a vector on the go which contains the numbers 1 to 10. In the first iteration of the loop, `i` takes the value 1 since this is the first value of the vector. In the second iteration `i` takes the value 2, in the next 3 and so on.
+- **{}**: The expression inside the round brackets is evaluated once for each value in the vector.
+
+Objects assigned inside the loop are not destroyed when it finishes running. A special version of the `for`-loop is the `while`-loop. In that case the loop runs until a defined condition is met.
+
+To run an `apply`-loop, you have to define a function first:
+
+```{r}
+foo <- function(i, silent = FALSE) {
+  if (!silent) {
+    message(i) 
+  }
+  return(i)
+}
+```
+
+Then you can apply this function on a vector or list or matrix.
+There are several different `apply`-loops, most importantly, `sapply` and `lapply`.
+The difference is that `sapply` will try to simplify the output while `lapply` return a list object by default:
+
+```{r}
+x <- lapply(1:10, foo)
+unlist(x)
+```
+
+Strangely enough, function inside the `apply` call are written without the brackets.
+If you want to add further arguments, you add them after commas.
+
+As we learned above the output of a function is only the object you write inside `return`.
+That means `apply`-loops will destroy every but one object created inside the function.
+`lapply` will return a list with the result of each run in one element of the list.
+
+This makes `apply`-loops somewhat harder to handle.
+Yet they often give your code a performance boost due to a quirk of `R`:
+The operation `x <- c(x, i)` is relatively memory and CPU intensive as `R` will create a new object each time and then copy the data into that new object even when it has the same name as an already existing one.
+As `apply`-loops return one object per run, this step is skipped and data is only copied to a new object at the end.
+Especially if your data is large, this can be the difference between your script running for a minute or 3 hours.
+
+The `apply` family of loops has one big problem though:
+The output of each run is always converted to a list except when using `sapply`.
+There is no way to determine how `sapply` returns your data though.
+If it can it will output a vector but it might also return a matrix or list depending on the outcome of your function on the specific data.
+
+The package `purrr` solves that issue by letting you define what your final object should look like:
+
+```{r}
+library(purrr)
+map_dbl(1:10, foo, silent = TRUE) # produces numeric vectors called double here
+map_chr(1:10, foo, silent = TRUE) # produces character vector
+map(1:10, foo, silent = TRUE) # just map produces a list
+map_df(c(numbers = 1:10), foo, silent = TRUE) # produces data.frame; needs named vector
+```
+
+# if
+
+If you want to run a function or a few lines of code only under a special condition, the `if` function is your friend.
+It evaluates a condition and only runs the code if the results is `TRUE`:
+
+```{r}
+test <- 2 == 1 + 1
+test
+if (test) {
+  message("The condition is TRUE")
+}
+
+if (2 == 1 + 2) {
+  message("The condition is TRUE")
+}
+```
+
+`if` is accompanied by `else` which is run when the condition in `if` is `FALSE`:
+
+```{r}
+if (2 == 1 + 2) {
+  message("The condition is TRUE")
+} else {
+  message("The condition is FALSE")
+}
+```
+
+
+# Objects and classes in `R`
+
+This is meant as a quick run-through of the classes and objects in `R`.^[For more information you can read this chapter: [OO field guide](http://adv-r.had.co.nz/OO-essentials.html).]
+Data in your environment is organised in objects.
+You can define an object with one of the arrow operators
+
+```{r}
+x <- 1
+1 -> x
+```
+
+99% of people only use the `<-` operator.
+
+Objects in `R` then have different classes.
+You can find out the class of an object with the `class` command.
+
+```{r}
+class(x)
+class(df)
+class(df$cyl)
+```
+
+This is important in many debugging scenarios.
+Some problems that drive many new `R` nearly insane arise from the factor class, for example.
+Consider the following (which you **should never ever do!**):
+
+```{r}
+grades <- c(15, 15, 14, 8, 5, 9, 10, 6, 6, 2, 0, 12)
+grades_f <- as.factor(grades)
+as.numeric(grades_f)
+```
+
+By changing class of the grades vector to factor (`as.factor`) and then back to numeric (`as.numeric`), it gets completely destroyed.
+
+An especial nuisance in this regard is that the standard methods to create a `data.frame` convert all character strings to factor:
+
+```{r}
+df <- data.frame(
+  names = c("Jon", "David", "Theresa", "Rebecca", "Thomas", "Anna", "Jessica", "Saskia", "Mona", "Mark", "Lis", "Ben"),
+  grades = c(15, 15, 14, 8, 5, 9, 10, 6, 6, 2, 0, 12)
+)
+df$names
+```
+
+This can make some operations really annoying:
+
+```{r}
+df_new <- df
+df_new$names[7] <- "Jane" # repalce the 7th name with Jane
+df_new
+```
+
+This doesn't work as there is no `level` called "Jane".
+Instead you have to replace the level or make a new one.
+
+```{r}
+df_new <- df
+levels(df_new$names)
+levels(df_new$names) <- c(levels(df_new$names), "Jane") # add new level at the end
+df_new$names[7] <- "Jane" # repalce the 7th name with Jane
+df_new
+```
+
+Other operation simply won't work at all:
+
+```{r error=TRUE}
+nchar(df$names)
+```
+
+If you see that `R` produces a warning about factors, don't ignore it because it can have some bad implications.
+Go back to where you created your data.frame and turn off the automatic conversion of characters to factors:^[Or use the `tibble` class instead. More about that later.]
+
+```{r}
+df <- data.frame(
+  names = c("Jon", "David", "Theresa", "Rebecca", "Thomas", "Anna", "Jessica", "Saskia", "Mona", "Mark", "Lis", "Ben"),
+  grades = c(15, 15, 14, 8, 5, 9, 10, 6, 6, 2, 0, 12),
+  stringsAsFactors = FALSE
+)
+df$names
+```
+
+## Hidden values in `R` objects
+
+> "I sometimes find that there is “hidden” data that can appear if conjured but I don’t know what the magic spell is."
+
+There are indeed a few places where data can be hidden in `R`.
+If you want to know everything about it I recommend reading the chapters ["OO field guide"](http://adv-r.had.co.nz/OO-essentials.html) and ["Environments"](http://adv-r.had.co.nz/Environments.html) in Hadley Wickham's book *Advanced R*.
+
+But to give you a quick heads up of the relevant points, here are a few facts:
+
+Let's look at the object we defined above again:
+
+```{r}
+class(df)
+```
+
+This object is a `data.frame`, which is a rectangular expression of data, meaning it has rows an columns like an Excel sheet.
+You can display this data in an Excel like viewer with:
+
+```{r eval=FALSE}
+View(df)
+```
+
+But that is not the whole story.
+Besides the data you can see, some of the information is stored away in attributes:
+
+```{r}
+attributes(df)
+```
+
+None of this is surprising.
+However you or developers can store information here as well:
+
+```{r}
+attr(df, "created") <- "2020-01-14 12:15:03 GMT"
+```
+
+This doesn't change how the data is displayed with `View()` but the information is accessible from now on:
+
+```{r}
+attributes(df)$created
+```
+
+What is also interesting is what happens if we delete all attributes:
+
+```{r}
+df_new <- df
+attributes(df_new) <- NULL
+```
+
+```{r eval=FALSE}
+View(df_new)
+```
+
+This doesn't look like a spreadsheet any more.
+Instead the object is now displayed as a list.
+
+The reason for this is that `data.frame` class is basically just a `list` with some extra information. 
+`R` allows to define arbitrary classes:
+
+```{r}
+df_new <- df
+class(df_new) <- "arbitrary"
+class(df_new) 
+df_new
+```
+
+Once you made a new class you can change the way `R` `print`s the object in the output and even the way it is displayed with `View`:
+
+```{r}
+print.arbitrary <- function(x) {
+  x <- unclass(x)
+  x <- as.data.frame(x)
+  print.data.frame(x)
+}
+df_new
+```
+
+The `.` behind the function means that it is defined for a specific class only.
+This is the reason why it sometimes seems like magic when you command like `print` or `plot` and `R` seems to know more about the object than meets the eye.
+
+# R base
+
+Commonly people referring to *base* `R` mean all functions available when starting `R` but not loading any packages with `library(package)`.
+This includes some functions from packages like `stats` and `utils` which are not technically part of the package `base` but are automatically loaded.
+
+*base* can do many things already and some people prefer to use it since the functions do not usually change over time (most have been around unchanged in the last 15 years).
+
+```{r}
+df <- mtcars # using a built-in example data.frame
+table(df$cyl)
+sum(df$cyl)
+mean(df$cyl)
+dist(head(df)) # calculates euclidian distance between cases
+tolower(row.names(df))
+```
+
+Especially for simple operations and statistics, *base* is still great.
+
+```{r}
+model <- lm(hp ~ mpg, data = df) # simple linear regression
+summary(model)
+```
+
+*base* also has a plotting system:
+
+```{r}
+plot(df$mpg, df$hp, col = "blue", ylab = "horse power", xlab = "miles per gallon", main = "Simple linear regression")
+abline(model, col = "red")
+text(30, 300, "We can add some text", col = "red")
+```
+
+Whenever you see plots which look like this, you know *base* was used.
+The *base* plotting system works by creating a plot (usually with `plot` which decides a sensible way to plot the input) and then adding layers on top of it.
+
+# Tidyverse
+
+The official description of the tidyverse is: "The tidyverse is an opinionated collection of R packages designed for data science. All packages share an underlying design philosophy, grammar, and data structures".
+The principle that gives the tidyverse its name is that of tidy data: "Each variable forms a column. Each observation forms a row." (see [tidyr vignette](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html) for more info)
+This seems trivial at first but as a principle can be quite consequential.
+
+For example, while several `R` object classes are available, such as the `vector`, `matrix`, `list` class, many variations and combinations of these with different names and two more entire class systems of specialised objects, the tidyverse uses `data.frame`s almost exclusively.
+
+The tidyverse packages add some functionality to *base* but they often also completely replace some functions to make data science more consistent.
+Let's look at the `table` function as an example.
+
+```{r}
+tab <- table(df$cyl)
+tab
+class(tab)
+```
+
+The table function can be useful for counting how many cases have a certain value.
+But there are two problems: 1. The class of the resulting object is `table` which is basically a named vector, which is awkward to convert to `data.frame`, not really pretty to print and tough to export into Excel, for example; 2. The levels are next to each other rather than below one another, which makes it harder to read when the number of different values exceeds the width of your console.
+
+Compare the tidyverse solution to that:^[Note here that you can either call each package from the tidyverse individually (`library(dplyr)`, `library(tidyr)` and so on) or you call all at once with `library(tidyverse)`.]
+
+```{r message=FALSE}
+library(tidyverse)
+count(df, cyl, sort = TRUE)
+```
+
+You get a nice and tidy output with each level of the variable cyl in one column and the number of times it occurs in the data in another.
+This is true for most tidyverse functions: A data.frame goes in, a data.frame goes out.
+The function also has a more intuitive name and the syntax is pretty much the same on most tidyverse functions:
+
+```{}
+function(data.frame, column(s), arguments)
+```
+
+The tidyverse also re-defined some basic things like the `data.frame` class, which they call `tibble` now:
+
+```{r}
+tbl <- tibble(
+  names = c("Jon", "David", "Theresa", "Rebecca", "Thomas", "Anna", "Jessica", "Saskia", "Mona", "Mark", "Lis", "Ben"),
+  grades = c(15, 15, 14, 8, 5, 9, 10, 6, 6, 2, 0, 12)
+)
+tbl
+```
+
+The `tibble` class has two main advantages:
+it never coerces character to factor and the printing of a `tibble` is way nicer.
+
+Unlike *base* though, the tidyverse functions change regularly and sometimes old functions are deprecated.
+This means occasionally, something that worked before will give you a warning or error.
+However, this happens rarely now and usually when functionality changes, the tidyverse developers opt to make a new function and display a message when you use the old one but do not keep you from still using it.
+One famous example is the package `reshape2` that many people still use but which was superseded by `tidyr`.
+You can still use `reshape2` and many people actually prefer it because of its simple syntax.
+But you won't get the newest cutting edge functionality unless you use `tidyr`.
+
+# Pipes 
+
+```{r, echo=FALSE, fig.align='center'}
+magick::image_read("https://upload.wikimedia.org/wikipedia/en/thumb/b/b9/MagrittePipe.jpg/300px-MagrittePipe.jpg")
+```
+
+
+One of the big advances the `tidyverse` uses to make code more readable is the pipe.
+The most widely used pipe function comes from the `magrittr` package, which did not originate in the `tidyverse` but is today one of the most integral one.
+It is automatically loaded with every other `tidyverse` package which means you almost never have to load it directly via `library(magrittr)`.
+
+It solved one particular problem *base `R`* has: readability.
+
+Consider this example:
+
+```{r}
+transform(aggregate(. ~ cyl, data = subset(df, hp > 100), FUN = function(x) round(mean(x, 2))), kpl = mpg*0.4251)
+```
+
+What is going on here?
+It is almost impossible to tell since 3 (or even 5 depending on how it is counted) functions are written inside of one another.
+The problem is that `R` evaluates code lines from the in- to the outside.
+That means you have to start reading the function above from `subset` and then slowly progress to the outer functions.
+Critically, it is also not straightforward to annotate this line of code.
+
+You can make this code more readable by splitting up the operations into several lines:
+
+```{r}
+data1 <- subset(df, hp > 100) # take subset of original data
+data2 <- aggregate(. ~ cyl, data = data1, FUN = function(x) round(mean(x, 2))) # aggregate by taking rounded mean
+transform(data2, kpl = mpg * 0.4251) # convert miles per gallon to kilometer per liter
+```
+
+Now every function has it's own line.
+However you also produced two new objects which are probably useless in the rest of the script and clog your environment.
+You could get around this by using a temp object and continue to overwrite it.
+However this is a potential source of error if one line of code is not evaluated (because you accidentally skipped it or because it failed) as the next lines will work with one of the earlier created objects.
+
+Pipes solve this problem by forwarding the result of one function to the next line (you should make a new line after the pipe even if not necessary):
+
+```{r}
+df %>% 
+  subset(., hp > 100) %>%
+  aggregate(. ~ cyl, data = ., FUN = . %>% mean %>% round(2)) %>%
+  transform(kpl = mpg * 0.4251)
+```
+
+The result of the line before the `%>%` is used as the first argument in the next function by default.
+If you need to refer to the previous result specifically, for example because you do not want to use it as the first argument, you can use a single `.`.
+
+```{r}
+"This is a test" %>% 
+  gsub(pattern = "test", replacement = "quick test", x = .)
+```
+
+The pipe is a standard in many programming languages and operating systems.
+Nevertheless, some people who use `R` for many years already and do not know programming languages which use a pipe often struggle with the concept or shrug it off.
+Which I think is a mistake.
+
+# ggplot2
+
+Another special package in the tidyverse it `ggplot2`.
+It completely replaces the plotting system in `R` and can be considered the standard way of creating plots in `R` today.
+The "gg" in the name refers to grammar of graphics and that is what really sets it apart from the original plotting system and what makes it one of the best ways to create plots (some python users call `R` from python just to use it, for example).
+The "2" in the name refers to it being the second implementation of the grammar of graphics (`ggplot` also exists as a package but do yourself a favour and never install it on your system because you will accidentally call it countless times and wonder what's going on).
+
+However, most people struggle when first learning `ggplot2`.
+The reason for this is that unless you understand a few basic principles, the grammar of graphics can seem like a completely foreign language.
+Again this is a quick walk through what I consider to be these basic principles.
+If you struggle with my explanation or want to learn more, you should read the excellent and free book ["ggplot2: Elegant Graphics for Data Analysis"](https://ggplot2-book.org/).
+
+```{r}
+plot1 <- ggplot(data = df, mapping = aes(x = mpg, y = hp))
+print(plot1)
+```
+
+- **ggplot()**: This is at the beginning of every plot in `ggplot2`. If you think about a plot as a painting, this step is equivalent to taking an empty canvas from the storage room and placing it on the easel.
+- **data**: The first argument in the plot is data. It has to be a data.frame (or tibble) and everything in the plot will refer back to this initial dataset, except you tell `ggplot2` to explicitly use different data. To stay with the metaphor, the data is the available painting equipment which you place next to the scaffold, so you don't have to run to your art supply storage every time you make a brushstroke.
+- **mapping = aes**: Next you aesthetic mappings. When called inside `ggplot()`, the mappings are the default for the rest of the plot. That means unless you define different data to be on the y-axis, `ggplot2` will use the hp from here on.
+
+When an object is printed (either via `print` or just by running the object like a command), the plot is displayed. Since we only set the canvas up and provided default aesthetic mappings for the x and y axis, all we can see so far are the axis ticks of an otherwise empty plot.
+
+To actually see something we need to add a layer, called geoms in `ggplot2`:
+
+```{r}
+plot2 <- plot1 +
+  geom_point()
+plot2
+```
+
+- **+**: Since `ggplot2` is one of the oldest packages in the tidyverse, it has it's own pipe operator, which is the + sign. It kind of makes sense though as it symbolises that you add something to your plot.
+- **geom_point()**: Since we defined a default dataset and aesthetic mappings in the initial call to `ggplot()`, we do not have to repeat that here. The `geom_point()` is therefore equal to if we would have written `geom_point(data = df, mapping = aes(x = mpg, y = hp))`.
+
+Instead of using the default mapping, you can also add new aesthetic mappings in every layer:
+
+```{r}
+plot1 +
+  geom_point(mapping = aes(colour = as.factor(gear)))
+```
+
+From here on you can build your plot up, adding layers.
+Don't worry about the `as.factor()` part for now.
+
+```{r}
+plot3 <- plot2 +
+  geom_smooth(method = 'lm') +
+  geom_hline(yintercept = mean(df$hp), color = "red")
+plot3
+```
+
+If you want to use different data for some reason, you can do so by plugging it into the `data` field.
+
+```{r}
+plot3 +
+  geom_label(aes(x = x, y = y, label = label, colour = col), data = data.frame(
+    x = 30, y = 300, label = "We can add some text", col = "red"
+  ))
+```
+
+Now where most people start to struggle is when trying to get the difference between aesthetic mappings and other arguments used in geoms.
+There is one simple rule that should clear this up though: aesthetic mappings (`aes()`) is for mapping lines, point, text, and so on to the data, other arguments provide specific values.
+Arguments can overwrite mappings when both are present.
+Here is an example:
+
+```{r}
+plot3 +
+  geom_label(aes(x = x, y = y, label = label, colour = col), data = data.frame(
+    x = 30, y = 300, label = "We can add some text", col = "red"
+  ), colour = "blue")
+```
+
+The `colour` written outside `aes()` is an argument to the geom.
+This argument says here that the colour of the geom should be blue.
+This has priority over the specific mapping to one data point (red in this example).
+
+The second important thing to understand about `ggplot2` are scales.
+By default, `ggplot2` will choose a scale based on the class of the data in a column.
+Earlier I told you not to worry about the `as.factor()` part in one of the examples.
+Let's check the example again without that:
+
+```{r}
+plot1 +
+  geom_point(mapping = aes(colour = gear))
+```
+
+`ggplot2` has now chosen a different scale than before.
+Specifically, the standard scale for a numeric value is a continuous one while for factor and character columns a discrete scale is chosen.
+That is why it makes more sense to first change the column to a factor.
+Scales can be customised by using one of the `scale_*` commands.
+The way these are structured are you scale_, followed by the mapping you want a scale for (x, y and colour so far) and then then what scale you want.
+Auto-completion in RStudio helps a lot trying to decide here:
+
+```{r}
+plot4 <- plot1 +
+  geom_point(mapping = aes(colour = as.factor(gear))) +
+  scale_color_viridis_d()
+plot4
+```
+
+Now in the plot it doesn't look to nice that we have the "as.factor(gear)" as the legend label.
+We can change that with `labs`.
+
+```{r}
+plot5 <- plot4 +
+  labs(title = "Title", x = "Miles per Gallon", y = "Horsepower", colour = "Gears")
+plot5
+```
+
+What is slightly confusing here is the `colour = "Gears"` but remember we are labelling the aesthetic mappings here.
+
+One last tip about using `ggplot2` is the theme.
+You can define specific things about the theme using the `theme` command:
+
+```{r}
+plot5 +
+  theme(axis.text = element_text(colour = "red"))
+```
+
+But more useful are the pre-defined themes available in `ggplot2` and elsewhere that can completely change how a plot looks with one additional line:
+
+```{r}
+plot5 +
+  theme_minimal()
+```
+
+I like the minimal theme but there are also a lot of cool themes online.
+Some are collected in the `ggthemes` package:
+
+```{r}
+plot5 +
+   ggthemes::theme_stata()
+
+plot5 +
+   ggthemes::theme_excel_new()
+
+plot5 +
+   ggthemes::theme_fivethirtyeight()
+```
+
+Some of them are just for fun but some other themes look seriously good.
+And you can always define your own if you want a specific one for your PhD.
+  
+# Important shortcuts in RStudio
+
+The three keyboard shortcuts I use most are `alt` + `-` for `<-`, `Ctrl` + `alt` + `i` to insert a new code chunk in an RMarkdown document and `Ctrl` + `Shift` + `m` for inserting `%>% `.
+Besides that `Ctrl` + `c` (copy), `Ctrl` + `v` (paste) and `Ctrl` + `f` (find) are your friends or course.
+
+Another cool thing in RStudio are code snippets.
+They are basically an advanced version of auto-completion.
+To test this, make a new code chunk, type `for` and press the tab key.
+This should be the result:
+
+```{r eval=FALSE}
+for (variable in vector) {
+
+}
+```
+
+You can view and customise these snippets in Global Options -> Code -> Edit Snippets.
+

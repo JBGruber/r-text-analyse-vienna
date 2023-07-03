@@ -17,10 +17,14 @@ reading.
 
 ## Prerequisites
 
-I assume that you have [R]() and [RStudio]() installed and have some
-basic knowledge of R. If that is not the case, you can also use this
-workshop to get an overview of available approaches. But you will have a
-harder time following what’s going on in the sessions.
+I assume that you have [R](https://cran.rstudio.com/) and
+[RStudio](https://posit.co/download/rstudio-desktop/) installed and have
+some basic knowledge of R. If that is not the case, you can also use
+this workshop to get an overview of available approaches. Or you can try
+to get up to speed by using the book [R for Data Science (Wickham and
+Grolemund 2023)](https://r4ds.had.co.nz/) or a [refresher
+document](https://github.com/JBGruber/r-text-analyse-vienna/blob/main/1_Obtaining_Text_Data.qmd)
+that I added to the course.
 
 ## Download the project
 
@@ -45,6 +49,10 @@ field and select where to download the project to.
 
 After clicking “Create Project”, a new session should open. That’s it!
 
+Note: when you want to make changes to the documents (e.g., for taking
+notes in them), you should save them under a new name, so you can update
+your local files with the changes that I might make in this repository.
+
 ## Install R packages
 
 The short code below will check the tutorial files for mentioned R
@@ -56,6 +64,7 @@ rlang::check_installed("attachment")
 if (!rlang::is_installed("quanteda.corpora")) remotes::install_github("quanteda/quanteda.corpora")
 if (!rlang::is_installed("paperboy")) remotes::install_github("JBGruber/paperboy")
 if (!rlang::is_installed("mediacloud")) remotes::install_github("joon-e/mediacloud")
+remotes::install_github("JBGruber/dataverse-client-r")
 rlang::check_installed(attachment::att_from_qmds(list.files(pattern = ".qmd")))
 ```
 
@@ -79,3 +88,14 @@ and on computers without dedicated graphics cards it also does not make
 a lot of sense. So I made the decision to move this part to the cloud.
 You can still try to follow the explanation in the document before the
 session, but we will not have time to troubleshoot problems in class.
+
+<div id="refs" class="references csl-bib-body hanging-indent">
+
+<div id="ref-wickhamr4ds2023" class="csl-entry">
+
+Wickham, Hadley, and Garrett Grolemund. 2023. *Advanced r*.
+<https://r4ds.had.co.nz/>.
+
+</div>
+
+</div>

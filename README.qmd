@@ -3,6 +3,7 @@ title: "Workshop Automated Content Analysis"
 format: gfm
 execute: 
   eval: false
+bibliography: references.bib
 ---
 
 # Schedule
@@ -20,9 +21,9 @@ See the [Syllabus](0_Syllabus.pdf) with some info and recommended reading.
 # Preparation before the course
 ## Prerequisites
 
-I assume that you have [R]() and [RStudio]() installed and have some basic knowledge of R.
+I assume that you have [R](https://cran.rstudio.com/) and [RStudio](https://posit.co/download/rstudio-desktop/) installed and have some basic knowledge of R.
 If that is not the case, you can also use this workshop to get an overview of available approaches.
-But you will have a harder time following what's going on in the sessions.
+Or you can try to get up to speed by using the book [R for Data Science [@wickhamr4ds2023]](https://r4ds.had.co.nz/) or a [refresher document](https://github.com/JBGruber/r-text-analyse-vienna/blob/main/1_Obtaining_Text_Data.qmd) that I added to the course.
 
 ## Download the project
 
@@ -44,6 +45,8 @@ Then copy the URL `https://github.com/JBGruber/r-text-analyse-vienna.git` into t
 
 After clicking "Create Project", a new session should open.
 That's it!
+
+Note: when you want to make changes to the documents (e.g., for taking notes in them), you should save them under a new name, so you can update your local files with the changes that I might make in this repository.
 
 ## Install R packages
 
