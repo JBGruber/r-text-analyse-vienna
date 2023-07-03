@@ -113,10 +113,8 @@ Another difference to before is that we declare what we want to do right in the 
 
 ```{r}
 imdb_rec <- recipe(label ~ text, data = imdb) %>%
-  step_tokenize(all_predictors()) %>%
-  step_stopwords(language = "en") %>% 
-  step_tokenfilter(all_predictors(), min_times = 3) %>%
-  step_tf(all_predictors())
+  step_tokenize(text) %>%
+  step_word_embeddings(text, embeddings = as_tibble(glove_df))
 ```
 
 This was extremly fast, because nothing has actually been done yet.
@@ -201,6 +199,52 @@ my_metrics(imdb_prediction, truth = truth, estimate = estimate) %>%
     )
   )
 ```
+
+### quick explanation of the common metrics
+
+1. **Precision**: This is the ratio of correctly predicted positive observations to the total predicted positives. High precision means that an algorithm returned more relevant results than irrelevant ones.
+
+2. **Recall** (Sensitivity): This is the ratio of correctly predicted positive observations to the all observations in actual class. High recall means that an algorithm returned most of the relevant results.
+
+3. **F1 Score**: This is the weighted average of Precision and Recall. It tries to find the balance between precision and recall. High F1 score means that both recall and precision are high.
+
+We often use a confusion matrix to calculate these metrics. A confusion matrix is a 2x2 table that contains 4 outputs provided by the binary classifier. The terminology can vary, but it's often formatted as follows:
+
+|                    | Actual Positive     | Actual Negative     |
+|--------------------|---------------------|---------------------|
+| Predicted Positive | True Positive (TP)  | False Positive (FP) |
+| Predicted Negative | False Negative (FN) | True Negative (TN)  |
+
+Based on this matrix:
+
+- Precision = TP / (TP + FP)
+- Recall = TP / (TP + FN)
+- F1 Score = 2*(Recall * Precision) / (Recall + Precision)
+
+A quick example:
+Let's say we have a binary classifier that's being used to predict whether a given email is "spam" (positive class) or "not spam" (negative class).
+Suppose our classifier is tested on a dataset of 100 emails, which include 20 actual spam messages and 80 actual non-spam messages. The classifier outputs the following results:
+
+|                    | Actual Spam     | Actual Not Spam |
+|--------------------|-----------------|-----------------|
+| Predicted Spam     | 15 (TP)         | 5 (FP)          |
+| Predicted Not Spam | 5 (FN)          | 75 (TN)         |
+
+Here, the precision, recall, and F1 score would be calculated as:
+
+- Precision = TP / (TP + FP) = 15 / (15 + 5) = 0.75
+- Recall = TP / (TP + FN) = 15 / (15 + 5) = 0.75
+- F1 Score = 2*(Recall * Precision) / (Recall + Precision) = 2*(0.75 * 0.75) / (0.75 + 0.75) = 0.75
+
+So in this case, the classifier has a precision of 0.75 (meaning that 75% of the emails it labeled as "spam" were actually spam), a recall of 0.75 (meaning that it correctly identified 75% of the total spam emails), and an F1 score of 0.75 (giving a balance between precision and recall).
+Which of these metrics is most useful depends on the task.
+If you detect cancer in patients, false positives are not great, but false negatives might be deadly!
+In this case you should optimise the recall and only look at the other metrics as an afterthought.
+However, most of the time, we want to get a good F1 value (rule of thumb is above 0.7 or better 0.8).
+Note that in most cases, we do not really care about a "positive" class as both classes are equally important.
+And often, we have more than 2 classes.
+A good strategy here is to calculate F1 for each class and reporting all values plus the average.
+
 
 ## Alternative models {#alternative-models}
 

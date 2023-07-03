@@ -6,3 +6,9 @@ data/iran_tweets.csv.zip
 1_Obtaining_Text_Data_files/
 2_Regression_and_Scaling_files/
 3._Supervised_Classification_Methods_files/
+4._Word_Embeddings_files/
+5._Deep_Learning_files/
+6._Good_Workflows_files/
+data/plenary_speeches_tidy.rds
+data/glove.6B.100d.txt
+data/plenary_speeches_tidy.csv

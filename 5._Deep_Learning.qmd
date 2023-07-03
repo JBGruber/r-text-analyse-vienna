@@ -1,0 +1,370 @@
+---
+title: "Workshop Automated Content Analysis"
+subtitle: "Session 5: Deep Learning"
+author: "Johannes B. Gruber"
+date: 2023-07-07
+format:
+  html:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+bibliography: references.bib
+---
+
+# Introduction
+
+In the last session, we worked with some pre-trained word embedding models and found out that they still come with a lot of problems.
+The next breakthrough in the development of embeddings were transformer models [@transformer2017].
+They have several advantages which lead to models that 
+
+- Can take larger contexts into account when training (remember the limited window we used before)
+- Can be trained much more efficiently and can hence take in even more texts
+- Can have several embeddings for each word depending on the context, finally moving away from the bag-of-words paradigm
+- Can be fine-tuned on new data which contains different vocabulary
+
+However, compared to other approaches like naive bayes or svm algorithms, we are still relatively early for this new technology.
+The step that happened about 10-15 years ago when many of the things were implemented in R has not really happened yet.
+Meanwhile, the models also only run on new powerful hardware since the required matrix computations are slow on CPUs and need a GPU instead.
+
+So this session is currently more a preview than an actual hands-on tutorial.
+
+# R wrappers for large language models
+
+Another problem with LLMs is that they are predominanlty controlled from Python.
+R has excellent wrappers for languages like C, C++, Rust or Java, but Python still falls a little behind in terms of comfort of usage.
+Packages like `spacyr` and `grafzahl` try to employ Python anyway through the `reticulate` compatibility layer.
+(They do still have some issues to figure out.)
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+imdb <- readRDS("data/imdb.rds")
+set.seed(1)
+split <- initial_split(
+  data = imdb, 
+  prop = 3 / 4,   # the prop is the default, I just wanted to make that visible
+  strata = label  # this makes sure the prevalence of labels is still the same afterwards
+) 
+imdb_train <- training(split)
+imdb_test <- testing(split)
+```
+
+
+```{r}
+#| eval: false
+install.packages("grafzahl")
+grafzahl::setup_grafzahl(cuda = FALSE, cuda_version = "12.0")
+```
+
+
+```{r grafzahl}
+library(grafzahl)
+model <- grafzahl(x = imdb_train$text,
+                  y = imdb_train$label,
+                  model_name = "distilbert-base-uncased",
+                  output_dir = "model",
+                  cuda = TRUE,
+                  num_train_epochs = 1,
+                  train_size = 1)
+saveRDS(model, "8_imdb_distilbert.rds")
+# model <- readRDS("8_imdb_distilbert.rds")
+```
+
+
+```{r}
+library(gt)
+# prediction <- readRDS("8_imdb_distilbert_prediction.rds")
+imdb_prediction <- imdb_test %>% 
+  bind_cols(estimate = predict(model, newdata = imdb_test$text)) %>%
+  mutate(truth = factor(label),
+         estimate = factor(estimate))
+
+my_metrics <- metric_set(accuracy, kap, precision, recall, f_meas)
+
+my_metrics(imdb_prediction, truth = truth, estimate = estimate) %>% 
+  gt() %>% 
+  data_color(
+    columns = .estimate,
+    colors = scales::col_numeric(
+      palette = c("red", "orange", "green"),
+      domain = c(0, 1)
+    )
+  )
+```
+
+
+# Working with Python in R
+## Why combine Python with R? {#why-combine-python-with-r}
+
+![](media/reticulate.jpg){fig-align="center"}
+
+Why not just switch to Python?
+
+1.  If you're here, you probably already know R so why re-learn things from scratch?
+2.  R is a programming language specifically for statistics with some great built-in functionality that you would miss in Python.
+3.  R has absolutely outstanding packages for data science with no drop-in replacement in Python (e.g., ggplot2, dplyr, tidytext).
+
+Why not just stick with R then?
+
+1.  Newer models and methods in machine learning are often Python only (as advancements are made by big companies who rely on Python)
+2.  You might want to collaborate with someone who uses Python and need to run their code
+3.  Learning a new (programming) language is always good to extend your skills (also in your the language(s) you already know)
+
+## Getting started {#getting-started}
+
+We start by installing the necessary Python packages, for which you should use a virtual environment (so we set that one up first).
+
+### Create a Virtual Environment {#virtual-environment}
+
+**Before** you load `reticulate` for the first time, we need to create a virtual environment. This is a folder in your project directory with a link to Python and you the packages you want to use in this project. Why?
+
+-   Packages (or their dependencies) on the [Python Package Index](https://pypi.org/) can be incompatible with each other -- meaning you can break things by updating.
+
+-   Your operating system might keep older versions of some packages around, which you means you could break your OS by and accidental update!
+
+-   This also adds to projects being reproducible on other systems, as you keep track of the specific version of each package used in your project (you could do this in R with the `renv` package).
+
+To grab the correct version of Python to link to in virtual environment:
+
+```{r}
+if (R.Version()$os == "mingw32") {
+  system("where python") # for Windows
+} else {
+  system("whereis python")
+}
+```
+
+I choose the main Python installation in "/usr/bin/python" and use it as the base for a virtual environment. If you don't have any Python version on your system, you can install one with `reticulate::install_miniconda()`.
+
+```{r}
+# I build in this if condition to not accidentally overwrite the environment when rerunning the notebook
+if (!reticulate::virtualenv_exists(envname = "./python-env/")) {
+  reticulate::virtualenv_create("./python-env/", python = "/usr/bin/python")
+  # for Windows the path is usually "C:/Users/{user}/AppData/Local/r-miniconda/python.exe"
+}
+reticulate::virtualenv_exists(envname = "./python-env/")
+```
+
+`reticulate` is supposed to automatically pick this up when started, but to make sure, I set the environment variable `RETICULATE_PYTHON` to the binary of Python in the new environment:
+
+```{r}
+if (R.Version()$os == "mingw32") {
+  python_path <- file.path(getwd(), "python-env/Scripts/python.exe")
+} else {
+  python_path <- file.path(getwd(), "python-env/bin/python")
+}
+file.exists(python_path)
+Sys.setenv(RETICULATE_PYTHON = python_path)
+```
+
+Optional: make this persist restarts of RStudio by saving the environment variable into an `.Renviron` file (otherwise the `Sys.setenv()` line above needs to be in every script):
+
+```{r eval=FALSE}
+# open the .Renviron file
+usethis::edit_r_environ(scope = "project")
+# or directly append it with the necessary line
+readr::write_lines(
+  x = paste0("RETICULATE_PYTHON=", python_path),
+  file = ".Renviron",
+  append = TRUE
+)
+```
+
+Now reticulate should now pick up the correct binary in the project folder:
+
+```{r}
+library(reticulate)
+py_config()
+```
+
+### Installing Packages {#packages}
+
+`reticulate::py_install()` installs package similar to `install.packages()`. Let's install the packages we need:
+
+```{r}
+#| eval: false
+reticulate::py_install(c(
+  "bertopic", # this one requires some build tools not usually available on Windows, comment out to install the rest
+  "sentence_transformers",
+  "simpletransformers"
+))
+```
+
+## Recreating `grafzahl` from Python
+
+To demonstrate the workflow for `reticulate`, we do the same analysis as above, but rely on Python functions
+
+```{python}
+#| message: false
+#| warning: false
+#| output: false
+import pandas as pd
+import os
+import torch
+from simpletransformers.classification import ClassificationModel
+
+# args copied from grafzahl
+model_args = {
+  "num_train_epochs": 1, # increase for multiple runs, which can yield better performance
+  "use_multiprocessing": False,
+  "use_multiprocessing_for_evaluation": False,
+  "overwrite_output_dir": True,
+  "reprocess_input_data":  True,
+  "overwrite_output_dir":  True,
+  "fp16":  True,
+  "save_steps":  -1,
+  "save_eval_checkpoints":  False,
+  "save_model_every_epoch":  False,
+  "silent":  True,
+}
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+roberta_model = ClassificationModel(model_type="roberta",
+                                    model_name="roberta-base",
+                                    # Use GPU if available
+                                    use_cuda=torch.cuda.is_available(),
+                                    args=model_args)
+```
+
+We construct a training and test set from the movie review corpus in R:
+
+Now we can train the model on the coded training set and predict the classes for the test set (if you do not have a GPU, this will take a long time, so maybe do it after the course:
+
+```{python roberta}
+#| output: false
+# process data to the form simpletransformers needs
+train_df = r.imdb_train
+train_df['labels'] = train_df['label'].astype('category').cat.codes
+train_df = train_df[['text', 'labels']]
+
+roberta_model.train_model(train_df)
+
+# test data needs to be a list
+test_l = r.imdb_test["text"].tolist()
+predictions, raw_outputs = roberta_model.predict(test_l)
+```
+
+```{r}
+imdb_prediction <- imdb_test %>% 
+  bind_cols(estimate = factor(c("neg", "pos"))[py$predictions + 1]) %>%
+  mutate(truth = factor(label))
+
+saveRDS(imdb_prediction, "8_imdb_roberta.rds")
+# imdb_prediction <- readRDS("8_imdb_roberta.rds")
+
+my_metrics <- metric_set(accuracy, kap, precision, recall, f_meas)
+
+my_metrics(imdb_prediction, truth = truth, estimate = estimate) %>% 
+  gt() %>% 
+  data_color(
+    columns = .estimate,
+    colors = scales::col_numeric(
+      palette = c("red", "orange", "green"),
+      domain = c(0, 1)
+    )
+  )
+```
+
+## Running unsupervised learning with `BERTopic`
+
+I use the data_corpus_guardian from quanteda.corpora show an example workflow for `BERTopic`.
+This dataset contains Guardian newspaper articles in politics, economy, society and international sections from 2012 to 2016.
+
+```{r}
+library(quanteda.corpora)
+corp_news <- download("data_corpus_guardian")[["documents"]]
+```
+
+```{python bertopic}
+from bertopic import BERTopic
+from sentence_transformers import SentenceTransformer
+from umap import UMAP
+
+# confusingly, this is the setup part
+topic_model = BERTopic(language="english",
+                       top_n_words=5,
+                       n_gram_range=(1, 2),
+                       nr_topics="auto", # change if you want a specific nr of topics
+                       calculate_probabilities=True,
+                       umap_model=UMAP(random_state=42)) # make reproducible
+
+# and only here we actually run something
+topics, doc_topic = topic_model.fit_transform(r.corp_news.texts)
+```
+
+Unlike traditional topic models, BERTopic uses an algorithm that automatically determines a sensible number of topics and also automatically labels topics:
+
+```{r}
+topic_model <- py$topic_model
+saveRDS(topic_model, "8_topic_model.rds")
+# topic_model <- readRDS("8_topic_model.rds")
+topic_labels <- tibble(topic = as.integer(names(topic_model$topic_labels_)),
+                       label = unlist(topic_model$topic_labels_ )) %>%
+  mutate(label = fct_reorder(label, topic))
+topic_labels
+```
+
+Note that -1 describes a trash topic with words and documents that do not really belong anywhere. BERTopic also supplies the top words, i.e., the ones that most likely belong to each topic. In the code above I requested 5 words for each topic:
+
+```{r}
+top_words <- map_df(names(topic_model$topic_representations_), function(t) {
+  map_df(topic_model$topic_representations_[[t]], function(y)
+    tibble(feature = y[[1]], prob = y[[2]])) %>%
+    mutate(topic = as.integer(t), .before = 1L)
+})
+```
+
+We can plot them in the same way as in the last session:
+
+```{r}
+library(tidytext)
+top_words %>%
+  filter(topic %in% c(1, 7, 44, 53, 65, 66)) %>% # select a couple of topics
+  left_join(topic_labels, by = "topic") %>%
+  mutate(feature = reorder_within(feature, prob, topic)) %>%
+  ggplot(aes(x = prob, y = feature, fill = topic, label = label)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(vars(label), ncol = 2, scales = "free_y") +
+  scale_y_reordered() +
+  labs(x = NULL, y = NULL)
+```
+
+We can use a nice little visualization built into BERTopic to show how topics are linked to one another:
+
+```{python}
+# map intertopic distance
+intertopic_distance = topic_model.visualize_topics(width=700, height=700)
+# save fig
+intertopic_distance.write_html("media/bert_corp_news_intertopic.html")
+```
+
+```{r}
+htmltools::includeHTML("media/bert_corp_news_intertopic.html")
+```
+
+BERTopic also classifies documents into the topic categories (again not really how you should use LDA topicmodels). And provides a nice visualisation for trends over time. Unfortunately, the date format in R does not translate automagically to Python, hence we need to convert the dates to strings:
+
+```{r}
+corp_news_t <- corp_news %>%
+  mutate(date_chr = as.character(date))
+```
+
+```{python}
+topics_over_time = topic_model.topics_over_time(docs=r.corp_news_t.texts,
+                                                timestamps=r.corp_news_t.date_chr,
+                                                global_tuning=True,
+                                                evolution_tuning=True,
+                                                nr_bins=20)
+#plot figure
+fig_overtime = topic_model.visualize_topics_over_time(topics_over_time,
+                                                      topics=[1, 7, 44, 53, 65, 66])
+#save figure
+fig_overtime.write_html("media/fig_overtime.html")
+```
+
+```{r}
+htmltools::includeHTML("media/fig_overtime.html")
+```
+

@@ -31,5 +31,8 @@ make_quarto <- function(files,
 make_quarto(files = c(
   "1_Obtaining_Text_Data.qmd",
   "2_Regression_and_Scaling.qmd",
-  "3._Supervised_Classification_Methods.qmd"
+  "3._Supervised_Classification_Methods.qmd",
+  "4._Word_Embeddings.qmd",
+  "5._Deep_Learning.qmd",
+  "6._Good_Workflows.qmd"
 ))

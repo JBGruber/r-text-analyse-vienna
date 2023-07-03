@@ -341,3 +341,17 @@ iran_tweets <- rio::import("data/iran_tweets.csv.zip")
 3. Run a OLS with the day since the first tweet as dependent variable.
 
 4. Use the model to predict the day of the test data.
+
+
+# Wrap Up
+
+I like to put some information about the current session at the end of each quarto document.
+This way I know which packages I used to render an html file and can potentially reconstruct the same environment, even if the emplyed packages have changed in the meantime.
+I also use this last chunk to save objects I potentially want to re-use later.
+
+```{r}
+sessionInfo()
+# save data for later
+saveRDS(plenary_speeches_tidy, "data/plenary_speeches_tidy.rds")
+```
+
