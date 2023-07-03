@@ -1,12 +1,14 @@
 ---
-title: "Session 3: Obtaining Text Data"
-subtitle: "Textanalyse in R: eine Einführung"
+title: "Workshop Automated Content Analysis"
+subtitle: "Session 1: Obtaining Text Data"
 author: "Johannes B. Gruber"
-date: "2023-03-27"
+date: 2023-07-06
 format:
   html:
     toc: true
-    toc-location: left
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
 bibliography: references.bib
 ---
 
@@ -24,7 +26,7 @@ Usually the file format is revealed to us through the file extension (e.g., "fil
 Annoyingly, Windows hides the file extension by default since the last few iterations of the operating system.
 I would suggest you change that default if you can't see the file extensions already ([see here for an how-to](https://support.winzip.com/hc/en-us/articles/115011457948-How-to-configure-Windows-to-show-file-extensions-and-hidden-files)).
 
-From my experience your data will probably come in one of the formats below
+From my experience your data will probably come in one of the formats below:
 
 - **txt**: simple text file; use e.g., built-in `readLines()` command; often needs to be *parsed*, that means brought into a more useful structure first; if you are lucky, someone has written a function/package to parse your specific txt already (e.g., `LexisNexisTools::lnt_read()` for files from the newspaper archive LexisNexis or `rwhatsapp::rwa_read()` for chat logs from WhatsApp); watch out for file encoding! 
 - **docx**: The format used by Microsoft Word; use e.g., `readtext()` from the `readtext` package; usually needs to be *parsed* as well.
@@ -61,7 +63,8 @@ That does not necessarily mean that we have to have a `data.frame` though.
 ```{r}
 library(quanteda)
 corp <- lnt_convert(dat, to = "quanteda")
-docvars(corp)
+docvars(corp) %>% 
+  head(3)
 texts(corp) %>% 
   head(3)
 ```
@@ -133,6 +136,8 @@ This is useful if you want to extract e.g., paragraphs from a page (which only r
 ## Getting information about the Computational Communication Science Lab
 
 ```{r}
+#| message: false
+library(tidyverse)
 library(rvest)
 base_url <- "https://compcommlab.univie.ac.at/"
 ccs_lab <- read_html(paste0(base_url, "team/"))
@@ -238,16 +243,22 @@ Then you can get an API token from [here](https://search.mediacloud.org/account)
 ```{r}
 library(mediacloud)
 search_media("huffpost")
-test_data <- search_stories(title = "*",
+if (!file.exists("data/huff_test.rds")) {
+  test_data <- search_stories(title = "*",
                             media_id = 27502,
                             after_date = Sys.Date() - 7,
-                            n = 500)
+                            n = 50)
+  saveRDS(test_data, "data/huff_test.rds")
+} else {
+  test_data <- readRDS("data/huff_test.rds")
+}
 ```
 
 Mediacloud give you access to document-feature-matrices (but not full texts).
 
 ```{r}
-wm <- get_word_matrices(stories_id = test_data$stories_id[1:3])
+#| eval: false
+wm <- get_word_matrices(stories_id = test_data$stories_id, n = 1)
 wm
 ```
 
@@ -258,10 +269,14 @@ It is a collection of webscrapers and a robust backend for downloading data.
 This makes it useful to get larger datasets.
 
 ```{r}
+#| message: false
+library(paperboy)
 data_huff <- test_data |> 
-  pull() |> 
+  pull(url) |> 
   pb_collect() |> 
   pb_deliver()
+data_huff |> 
+  head()
 ```
 
 A special parsing script needs to be written for most new sites (some work with a default parser).
@@ -269,9 +284,9 @@ I'm collecting scrapers, so if you feel confident enough to write your own, have
 
 # Social Media Data
 
-## ~~Data from Twitter~~
+## ~~Data from Twitter~~ (API essentially broken)
 
-## ~~Data from Reddit~~
+## ~~Data from Reddit~~ (API essentially broken)
 
 ## Data from Kaggle
 

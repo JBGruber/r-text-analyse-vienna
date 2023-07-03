@@ -54,6 +54,8 @@ packages and install the missing ones on your computer:
 if (!requireNamespace("rlang", quietly = TRUE)) install.packages("rlang", dependencies = TRUE)
 rlang::check_installed("attachment")
 if (!rlang::is_installed("quanteda.corpora")) remotes::install_github("quanteda/quanteda.corpora")
+if (!rlang::is_installed("paperboy")) remotes::install_github("JBGruber/paperboy")
+if (!rlang::is_installed("mediacloud")) remotes::install_github("joon-e/mediacloud")
 rlang::check_installed(attachment::att_from_qmds(list.files(pattern = ".qmd")))
 ```
 

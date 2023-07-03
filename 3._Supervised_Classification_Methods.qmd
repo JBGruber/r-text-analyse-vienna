@@ -1,0 +1,334 @@
+---
+title: "Workshop Automated Content Analysis"
+subtitle: "Session 3: Supervised Machine Learning"
+author: "Wouter van Atteveldt & Kasper Welbers & Johannes B. Gruber"
+date: 2023-07-06
+format: html
+bibliography: references.bib
+---
+
+# Introduction
+
+We already briefly discussed supervised machine learning (SML) in the last session and used Ordinary Least Squares regression to predict a continuous variable.
+In text analysis, however, it is more common to predict categorical variables using different algorithms.
+The idea is always the same: you train a model using labelled data to then reproduce the classification on unseen documents.
+Importantly, we don't just trust a model as it might contain substantial biases or be flat out wrong for other reasons.
+Instead, every model needs to be validated against documents with known labels before it is actually used.
+
+There are many different packages dealing with both training and validating models and they often come with a new syntax that you have to learn first.
+In this session, we will use the tidymodels framework, which wraps many common algorithms and promises to unify the syntax.
+Like the tidyverse, it is a collection of packages, rather than just one package:
+
+![](https://jhudatascience.org/tidyversecourse/images/book_figures/simpletidymodels.png)
+
+This should not matter much in practice, but you might want to keep it in mind when asking questions on, e.g., stackoverflow.
+You should also note that the framework is meant for all modelling, not just for text analysis.
+
+For now, we simply use `tidymodels` an addition for text analysis called `textrecipes` and the normal `tidyverse`:
+
+```{r}
+library(tidymodels)
+library(textrecipes)
+library(tidyverse); theme_set(theme_bw())
+```
+
+
+# Get data
+
+We use data from a paper about sentiment analysis, which looked at IMDb reviews and coded if the reviews were positive and negative [@imdb2011].
+
+```{r}
+# you can ignore this part where I download and process the data. But I left it
+# in here in case you find it interesting.
+if (!file.exists("data/imdb.rds")) {
+  temp <- file.path(tempdir(), "imdb") 
+  dir.create(temp, recursive = TRUE)
+  curl::curl_download("http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz",
+                      file.path(temp, "imdb.tar.gz"), quiet = FALSE)
+  untar(file.path(temp, "imdb.tar.gz"), exdir = temp)
+  files <- list.files(temp, 
+                      pattern = ".txt", 
+                      recursive = TRUE,
+                      full.names = TRUE)
+  pb <- progress::progress_bar$new(total = length(files))
+  imdb <- map_df(files, function(f) {
+    pb$tick()
+    tibble(
+      file = f,
+      text = readLines(f, warn = FALSE)
+    )
+  }) %>% 
+    mutate(label = str_extract(file, "/pos/|/neg/"),
+           label = str_remove_all(label, "/"),
+           label = factor(label)) %>% 
+    filter(!is.na(label)) %>% 
+    select(-file)
+  saveRDS(imdb, "data/imdb.rds")
+} else {
+  imdb <- readRDS("data/imdb.rds")
+}
+```
+
+Let's have a quick look at the data:
+
+```{r}
+glimpse(imdb)
+```
+
+```{r}
+imdb %>% 
+  count(label) %>% 
+  ggplot(aes(x = n, y = label)) +
+  geom_col()
+```
+
+The prevalence of labels is exactly equal, which is an ideal scenario for SML (more later).
+
+```{r}
+imdb %>% 
+  mutate(text_length = str_count(text ,"\\S+")) %>% 
+  ggplot(aes(text_length)) +
+  geom_histogram(binwidth = 50) +
+  labs(x = NULL, y = NULL, title = "Number of words in IMDb reviews")
+```
+
+Most reviews have between 50 and 250 words, while some are significantly longer.
+It does not really matter how long the texts are, although very short texts are often hard to classify (as the weight of individual words is strongly increased).
+
+# Supervised machine learning with tidymodels
+
+We proceed in 4 (or 5) steps:
+
+1. preprocessing the incoming text
+2. splitting the dataset into training and a test set (which is not included in the model and just used for validation)
+3. fitting (or training) the model 
+4. using the test set to compare predictions against the real values for validation
+5. (using the model on new documents)
+
+## Using `textrecipes` to turn text into features {#using-textrecipes-to-turn-text-into-features}
+
+Previously, we have worked with `unnest_tokens` from tidytext and removed features like stopwords with dplyr verbs.
+We abstract this one step further with `textrecipes` (an extension of the `recipes` package) which handles all preprocessing in a unified syntax.
+Another difference to before is that we declare what we want to do right in the first line using the same syntax we would use for models like OLS in R:
+
+```{r}
+imdb_rec <- recipe(label ~ text, data = imdb) %>%
+  step_tokenize(all_predictors()) %>%
+  step_stopwords(language = "en") %>% 
+  step_tokenfilter(all_predictors(), min_times = 3) %>%
+  step_tf(all_predictors())
+```
+
+This was extremly fast, because nothing has actually been done yet.
+In the terminology of tidymodels, you just wrote a recipe, to actually do something, you also need to some "prepping" for the recipe and "baking" the training data:
+
+```{r}
+imdb_rec %>% 
+  prep(imdb) %>%
+  bake(new_data = NULL) %>% 
+  select(1:10)
+```
+
+You can see this looks very similar to the wide document feature matrix from before.
+But if you wanted to use the tidymodels framework for OLS or logisitc regression with survey data, the code would look almost exactly the same (just the individual steps would be different).
+
+## Splitting the dataset {#splitting-the-dataset}
+
+This is just one command, but it is important:
+
+```{r}
+set.seed(1)
+split <- initial_split(
+  data = imdb, 
+  prop = 3 / 4,   # the prop is the default, I just wanted to make that visible
+  strata = label  # this makes sure the prevalence of labels is still the same afterwards
+) 
+imdb_train <- training(split)
+imdb_test <- testing(split)
+```
+
+You should also note that we do this split only once, which is generally not a good idea, as which texts end up in the training and test portion of the data can influence the performance metrics of the model.
+Some researchers have even been caught trying many different seeds to find one that delivers better looking results.
+What you should do instead is to use the `bootstraps()` to fit multiple different combinations.
+Check out one of [Julia Silge's videos](https://youtu.be/z57i2GVcdww) if you want to learn more.
+
+## Fitting a model {#fitting-a-model}
+
+Let's start with a naïve bayes model, for which we need another package which contains this "engine" (you don't need to know this, the next step would tell you to load the package):
+
+```{r}
+library(discrim)
+nb_spec <- naive_Bayes() %>%
+  set_mode("classification") %>%
+  set_engine("naivebayes")
+```
+
+Now we bring the recipe and model together in a new workflow:
+
+```{r}
+imdb_wf_nb <- workflow() %>% 
+  add_recipe(imdb_rec) %>% 
+  add_model(nb_spec)
+```
+
+Now, we fit the model:
+
+```{r}
+model_nb <- fit(imdb_wf_nb, data = imdb_train)
+```
+
+## Evaluating the model {#evaluating-the-model}
+
+```{r}
+imdb_prediction <- imdb_test %>% 
+  bind_cols(predict(model_nb, new_data = imdb_test)) %>%
+  rename(truth = label, estimate = .pred_class)
+
+conf_mat(imdb_prediction, truth, estimate)
+```
+
+```{r}
+library(gt)
+my_metrics <- metric_set(accuracy, kap, precision, recall, f_meas)
+
+my_metrics(imdb_prediction, truth = truth, estimate = estimate) %>% 
+  gt() %>% 
+  data_color(
+    columns = .estimate,
+    colors = scales::col_numeric(
+      palette = c("red", "orange", "green"),
+      domain = c(0, 1)
+    )
+  )
+```
+
+## Alternative models {#alternative-models}
+
+and a lasso logistic regression model.
+For this we use two more packages:
+
+```{r}
+lasso_spec <- logistic_reg(penalty = 0.01, mixture = 1) %>%
+  set_mode("classification") %>%
+  set_engine("glmnet")
+
+imdb_wf_lasso <- workflow() %>% 
+  add_recipe(imdb_rec) %>% 
+  add_model(lasso_spec)
+
+model_lasso <- fit(imdb_wf_lasso, data = imdb_train)
+
+imdb_prediction_lasso <- imdb_test %>% 
+  bind_cols(predict(model_lasso, new_data = imdb_test)) %>% 
+  rename(truth = label, estimate = .pred_class)
+
+my_metrics <- metric_set(accuracy, kap, precision, recall, f_meas)
+
+my_metrics(imdb_prediction_lasso, truth = truth, estimate = estimate) %>% 
+  gt() %>% 
+  data_color(
+    columns = .estimate,
+    colors = scales::col_numeric(
+      palette = c("red", "orange", "green"),
+      domain = c(0, 1)
+    )
+  )
+```
+
+## Additional step: looking inside the model {#additional-step-looking-inside-the-model}
+
+So the accuracy is above chance, but rather underwhelming.
+From the confusion matrix and metrics, we know that the model leans to predictiing positive, even when the true values are negative.
+A way to make sense of a model is to look at coefficienst, as we've done before.
+This tells us essentially, what the model thinks are important terms to say a document is positive or negative.
+
+```{r}
+model_lasso %>% 
+  extract_fit_engine() %>% 
+  vip::vi() %>%
+  group_by(Sign) %>%
+  slice_max(Importance, n = 20) %>% 
+  ungroup() %>%
+  mutate(
+    Variable = str_remove(Variable, "tfidf_text_"),
+    Variable = fct_reorder(Variable, Importance)
+  ) %>%
+  ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~Sign, scales = "free_y") +
+  labs(y = NULL)
+```
+
+The positive predictors make perfect sense: *great*, *well*, *good*, etc.
+So, interestingly *bad*, *no*, and *even* are the best negative predictors, closely followed by a lot of words that hardly convey meaning.
+This makes it interesting to see if using ngrams will help performance, as it is quite possible that combinations like *not good* would be better predictors.
+Have a look at the [textrecipes documentation](https://textrecipes.tidymodels.org/reference/) to see the possibilities for text preprocessing.
+
+Also, we just tried out a regularization penalty of 0.1, and it is quite possible that this is not the best choice possible.
+Thus, it is a good idea to now do some hyperparameter tuning for the regularization penalty and other parameters.
+Take a look at the [machine learning handout](machine_learning.md) and/or the [tune documentation](https://tune.tidymodels.org/) to see how to do parameter tuning.
+
+Of course, you can also try one of the other classification models in [parsnip](https://parsnip.tidymodels.org/), and/or try a regression model instead to predict the actual star value.
+
+## Alternative Framework: quanteda.textmodels
+
+```{r}
+library(quanteda)
+library(quanteda.textmodels)
+```
+
+1. preprocessing the incoming text
+
+```{r}
+imdb_dfm <- imdb |> 
+  mutate(id = row_number()) |> 
+  corpus(
+    docid_field = "id",
+    text_field = "text"
+  ) |> 
+  tokens(
+    what = "word",
+    remove_punct = TRUE,
+    remove_symbols = TRUE,
+    remove_numbers = TRUE,
+    remove_url = TRUE,
+    remove_separators = TRUE
+  ) |> 
+  dfm(
+    tolower = TRUE
+  )
+```
+
+2. splitting the dataset into training and a test set (which is not included in the model and just used for validation)
+
+```{r}
+set.seed(1)
+test_ids <- sample(docnames(imdb_dfm), size = length(docnames(imdb_dfm)) * 0.15)
+training_dfm <- dfm_subset(imdb_dfm, !docnames(imdb_dfm) %in% test_ids)
+test_dfm <- dfm_subset(imdb_dfm, docnames(imdb_dfm) %in% test_ids)
+```
+
+3. fitting (or training) the model 
+
+```{r}
+model_nb <- textmodel_nb(training_dfm, y = docvars(training_dfm, "label"))
+```
+
+(alternative classification algorithms are `textmodel_lr`, `textmodel_svm` and `textmodel_svmlin`)
+
+4. using the test set to compare predictions against the real values for validation
+
+```{r}
+predicted_class <- predict(model_nb, newdata = test_dfm)
+caret::confusionMatrix(table(docvars(test_dfm, "label"), predicted_class))
+```
+
+
+5. (using the model on new documents)
+
+# Exercise Tasks {#exercise-tasks}
+
+1.  Use a support vector machine model instead of the naive bayes or lasso regression shown above
+
+2.  What would be the steps and functions you need to predict the party membership of a president in the SOTU addresses data?
+

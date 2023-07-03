@@ -1,0 +1,343 @@
+---
+title: "Workshop Automated Content Analysis"
+subtitle: "Session 2: Text Scaling and Regression Models"
+author: "Johannes B. Gruber"
+date: 2023-07-06
+format:
+  html:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+bibliography: references.bib
+---
+
+# Introduction
+
+The main insight from this workshop should be that in order to analyse text with a computer, we turn the words into numbers, so the computer can understand them.
+Once this is done, many methods in computational analysis of text are just simple statistics.
+
+# Turning words into a document-feature-matrix
+
+As data source for this session we use [the ParlEE plenary speeches data set](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/ZY3RV7) of parliamentary speeches from the Harvard dataverse:
+
+```{r}
+#| echo: false
+# remotes::install_github("JBGruber/dataverse-client-r")
+library(tidyverse)
+library(dataverse)
+
+Sys.setenv("DATAVERSE_SERVER" = "dataverse.harvard.edu")
+ds <- get_dataset("doi:10.7910/DVN/ZY3RV7")
+destfile <- "data/ParlEE_AT_plenary_speeches.csv"
+
+if (!file.exists(destfile)) {
+  curl::curl_download(get_file_by_id(6439942L, 
+                                     dataset = "doi:10.7910/DVN/ZY3RV7", 
+                                     return_url = TRUE), 
+                      destfile = "data/ParlEE_AT_plenary_speeches.csv", 
+                      quiet = FALSE)
+}
+```
+
+![](media/dataset.png)
+
+We use the `tidytext` package in combination with the `tidyverse` to make the process more visible.
+(An alternative would be `quanteda`, which is also a really good package and often faster and with many sensible defaults.)
+
+```{r}
+library(tidytext)
+plenary_speeches_raw <- rio::import("data/ParlEE_AT_plenary_speeches.csv")
+```
+
+```{r}
+plenary_speeches_raw |> 
+  head()
+```
+
+
+Before doing the actual analysis we do some cleaning and preprocessing (as you almost always do).
+In this case, the speeches are split into sentences, but we want to analyse whole speeches at once in this case.
+
+```{r}
+plenary_speeches <- plenary_speeches_raw |>
+  mutate(date = lubridate::dmy(date)) |> 
+  filter(date >= "2017-11-09",
+         date <= "2019-10-22") |>  # select XXVI. Gesetzgebungsperiode: 09.11.2017 – 22.10.2019
+  group_by(date, speechnumber, speaker, agenda, party, chair) |> # go from sentence to speech level
+  summarise(text = paste(text, collapse = "\n\n"), .groups = "drop") |> 
+  mutate(speech_id = row_number())
+```
+
+For this analysis it makes sense to remove stopwords (words which are used often in texts but only contain little meaning).
+Keeping the words would obscure some more valuable patterns.
+This would lead to a high number of more connections that are most likely unimportant to use. Second, keeping stopwords would drive up the computing time.
+Therefore, we will delete stopwords.
+Let's have a look at the off-the-shelf set:
+
+```{r}
+stopwords::stopwords("de")
+```
+
+We also remove numbers and URLs, which are hard to make sense of out of context.
+
+```{r}
+plenary_speeches_tidy <- plenary_speeches |> 
+  unnest_tokens(
+    output = "word",
+    input = "text",
+    token = "words"
+  ) |> 
+  filter(!word %in% stopwords::stopwords("de")) |> 
+  filter(str_detect(word, "[A-z]")) # remove features that consist only of numbers
+
+plenary_speeches_tidy |> 
+  head()
+```
+
+We can now look at the data in a document-feature-matrix, named like this since documents are the rows of the matrix and features (words and other characters) are the columns:
+
+```{r}
+plenary_speeches_dfm <- plenary_speeches_tidy |> 
+  count(speech_id, word) |> 
+  cast_dfm(document = speech_id, term = word, value = n)
+plenary_speeches_dfm
+```
+
+
+To check out this corpus a bit we can have a quick look at the most often occurring words:
+
+```{r}
+top_words <- plenary_speeches_tidy |> 
+  count(word, sort = TRUE)
+top_words |> 
+  head(20)
+```
+
+# Scaling
+
+## wordscores - supervised scaling
+
+```{r}
+plenary_parties_dfm <- plenary_speeches_tidy |> 
+  count(party, word) |> 
+  filter(!party %in% c("", "independent", "Independent")) |> 
+  cast_dfm(document = party, term = word, value = n)
+
+plenary_parties_dfm |> 
+  quanteda::print(max_ndoc = 9, max_nfeat = 20)
+```
+
+```{r}
+scores <- tribble(
+  ~party, ~score,
+  "FPÖ", 1,
+  "Grüne", 10,
+  "JETZT", NA,
+  "NEOS", NA,
+  "SPÖ", NA,
+  "ÖVP", NA
+)
+```
+
+
+```{r}
+library(quanteda)
+library(quanteda.textplots)
+library(quanteda.textmodels)
+plenary_parties_ws <- textmodel_wordscores(plenary_parties_dfm, 
+                                           scores$score[match(docnames(plenary_parties_dfm), scores$party)])
+```
+
+```{r}
+plenary_parties_scores <- predict(plenary_parties_ws)
+textplot_scale1d(plenary_parties_scores)
+```
+
+```{r}
+textplot_scale1d(plenary_parties_ws, 
+                 margin = "features", 
+                 highlighted = c("afrikanern", "asyllösung", "russlands", "österreich", "menschen"))
+```
+
+```{r}
+#| eval: false
+summary(plenary_parties_ws)
+word_scores <- coef(plenary_parties_ws) |> 
+  as_tibble(rownames = "word") |>
+  rename(score = value) |> 
+  left_join(top_words, by = "word")
+```
+
+## wordfish - unsupervised scaling
+
+Quanteda also allows for unsupervised scaling.
+
+```{r}
+set.seed(1)
+plenary_parties_wf <- textmodel_wordfish(plenary_parties_dfm, sparse = TRUE)
+textplot_scale1d(plenary_parties_wf)
+```
+
+```{r}
+textplot_scale1d(plenary_parties_wf, margin = "features")
+```
+
+Wordfish automatically scales all documents according to an underlying latent variable (the beta), which is assumed to correspond to the most interesting dimension in the data.
+
+### Exercise Tasks: scaling
+
+1. Load a dataset of your choice into R (e.g., WhatsApp data, the CCS Lab descriptions, the Kaggle Twitter dataset)
+2. Get the most frequent 500 words from your data
+3. Use `textmodel_wordfish` your data to scale document(groups)
+4. Use `textmodel_scores` to find proximity of document(groups) in your data, given two "extremes"
+
+
+# Regression
+
+In this section, we will use supervised machine learning (SML) to predict continuous values that are associated with text data.
+SML can be divided into two types
+
+-   A **classification** model predicts a class label or group membership.
+-   A **regression** model predicts a numeric or continuous value.
+
+Most people think about classification when they hear SML, but it is actually possible to use standard algorithms that you would usually think of as statistics to predict continuous rather than categorical variables.
+In the ParlEE dataset, the date comes to mind as something we could try to predict.
+Let's have a look:
+
+```{r}
+plenary_speeches_tidy |> 
+  distinct(speech_id, .keep_all = TRUE) |> 
+  count(date = lubridate::floor_date(date, "months")) |> # used to make plot easier to read
+  ggplot(aes(x = date, y = n)) +
+  geom_col() +
+  labs(x = NULL, y = NULL)
+```
+
+To make the variable easier to interpret, we convert the date into days since the first session using a small function:
+
+```{r}
+day_diff <- function(dates) {
+  first_date <- min(dates)
+  as.integer(dates - first_date, units = "days")
+}
+
+# let's test this
+day_diff(as.Date(c("2023-01-01", "2023-02-01")))
+```
+
+```{r}
+plenary_speeches_tidy_mc <- plenary_speeches_tidy |> 
+  mutate(day_nr = day_diff(date))
+
+plenary_speeches_tidy_mc |> 
+  distinct(speech_id, .keep_all = TRUE) |> 
+  count(day_nr) |> 
+  ggplot(aes(x = day_nr, y = n)) +
+  geom_col() +
+  labs(x = NULL, y = NULL)
+```
+
+It's not as easy to look at, but will work for our purposes.
+Next, we need to select some independent variables.
+I use the 1,000 most prevalent words and turn our long format data into the wide format the regression function expects:
+
+```{r}
+top_words_chr <- top_words |>
+  slice_head(n = 1000) |>
+  pull(word)
+
+plenary_speeches_tidy_mc_dfm <- plenary_speeches_tidy_mc |> 
+  filter(word %in% top_words_chr) |> 
+  count(word, speech_id, day_nr) |> 
+  pivot_wider(names_from = word, values_from = n, values_fill = 0)
+plenary_speeches_tidy_mc_dfm
+```
+
+This is exactly the same `cast_dfm` function above, but it produces a normal `data.frame` instead of a sparse matrix.
+
+The idea of machine learning is to predict some new cases.
+We can evaluate the performance of a model by removing some cases beforehand and then testing the model against the true value of these test cases.
+
+```{r}
+set.seed(1)
+training_ids <- plenary_speeches_tidy_mc_dfm |> 
+  slice_sample(prop = 0.8) |> 
+  pull(speech_id)
+
+training_data <- plenary_speeches_tidy_mc_dfm |> 
+  filter(speech_id %in% training_ids)
+
+test_data <- plenary_speeches_tidy_mc_dfm |> 
+  filter(!speech_id %in% training_ids)
+```
+
+We use the normal `lm()` function on the data with `day_nr` as dependant and everything else (except speech_id) as independent variables:
+
+```{r}
+model <- lm(day_nr ~ ., data = select(training_data, -speech_id))
+# you can run summary for fun but it will print almost all words
+# summary(model)
+```
+
+One interesting side effect of this is that the coefficients tell us which words can be used to predict an early or late speech:
+
+```{r}
+coef_df <- coef(model) |> 
+  as_tibble(rownames = "coef")|> 
+  filter(coef != "(Intercept)")
+
+coef_df |> 
+  arrange(value)
+```
+
+Some interesting words that predict earlier tweets are "strolz" and "polizei".
+
+
+```{r}
+coef_df |> 
+  arrange(-value)
+```
+
+At the other side of the spectrum we see "steuerreform" and "klimaschutz more often.
+
+To evaluate the model, we predict values for day in the test set, using the words of the texts in there and the model.
+We then plot the predicted values against the true ones:
+
+```{r}
+#| fig-width: 7
+#| fig-height: 7
+test_data_predict <- test_data |> 
+  mutate(day_nr_predict = predict(model, newdata = select(test_data, -speech_id)))
+
+test_data_predict |>
+  ggplot(aes(x = day_nr, y = day_nr_predict)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = lm, formula = y ~ x, color = "firebrick", linewidth = 1.5) +
+  labs(
+    x = "Truth",
+    y = "Predicted Day",
+    color = NULL,
+    title = "Predicted and true days for tweets about #IranProtests2022"
+  )
+```
+
+We can see that the fit is not great, with some negative day values and quite a bit of mis-prediction.
+But we can still see a trend and that the model is actually predicted something and does not return random results.
+Given that language does not shift that dramatically over time, this is still quite interesting.
+
+### Exercise Tasks
+
+1. In the Iran Tweets data, turn the day since the first tweet into a continuous variable starting with 1
+
+```{r}
+iran_tweets <- rio::import("data/iran_tweets.csv.zip")
+```
+
+2. Get the top 500 words in the first 10 days of the Iran Tweets data
+
+3. Divide the tweets into test and training data
+
+3. Run a OLS with the day since the first tweet as dependent variable.
+
+4. Use the model to predict the day of the test data.
