@@ -1,0 +1,442 @@
+---
+title: "Workshop Automated Content Analysis"
+subtitle: "Session 4: Word Embeddings"
+author: "Johannes B. Gruber"
+date: 2023-07-07
+format:
+  html:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+bibliography: references.bib
+---
+
+# Introduction
+
+> You shall know a word by the company it keeps.
+> — John Rupert Firth
+
+Word Embeddings are essentially a way to preprocess text.
+The approach takes advantage of the co-occurrences of words in the same text and constructs a representation of language by using dimension reduction techniques.
+If you have ever used techniques such as Principal Component Analysis, Factor Analysis, Multidimensional scaling or topic modelling, you have essentially already created embeddings.
+You essentially reduce the dimension of a document-feature-matrix, which can have hundreds of thousands of columns, as each one represents one specific word or feature, and turn it into a few hundred components, factors, dimension or whatever you want to call it.
+
+The big advantages of word embeddings are that the reduced number of dimensions in a document-embedding-matrix are that 
+
+- analyses are far less expensive (however, the encoding step might be)
+- the embeddings reflect the computer's understanding of language that it learned from the training corpus
+
+In this session we train an embedding model following the steps from [Supervised Machine Learning for Text Analysis in R](https://smltar.com/embeddings.html).
+For a long time, word embeddings performed similarly to other preprocessing steps.
+Sometimes it improved models, sometimes it didn't.
+However, in the next session, we will learn about some newer embedding techniques that lead to a breakthrough as models could be trained on billions of text, reflecting a substantial "knowledge" gain for the models, that come as close as we've ever been to getting computers to understand the meaning of language.
+This unfortunately also means though, that large language model are a domain of the richest companies and research facilities and are not easy to create by individual researchers.
+
+# Training our own embeddings
+
+```{r}
+#| message: false
+library(tidyverse)
+library(tidytext)
+library(widyr)
+library(irlba)
+library(furrr)
+```
+
+We can use the plenary speeches from Austria once more.
+I saved the tidied data, so we can skip a couple of steps.
+
+```{r}
+plenary_speeches_tidy <- readRDS("data/plenary_speeches_tidy.rds")
+```
+
+The first step is to remove rare words and then nest all words in a text.
+Nesting means that all texts from the same group (in this case same speech) are put into a list element.
+
+```{r}
+plenary_speeches_tidy_clean <- plenary_speeches_tidy |>
+  add_count(word) |> # add count
+  filter(n >= 50) |> # remove rare words
+  select(-n)
+
+nested_words <- plenary_speeches_tidy_clean |>
+  nest(words = c(word), .by = speech_id)
+
+nested_words |> 
+  select(speech_id, words) |> 
+  slice(1000:1006)
+```
+
+The reason for this is that in order to find the company a word keeps, we must determine where we look first.
+We next use a function that adds a slide window ID to the data.
+
+```{r}
+safe_mutate <- safely(mutate)  # create a safe mutate function (i.e., that does not error)
+
+#function to create sliding windows of a given size
+slide_windows <- function(tbl, window_size) {  
+  # use the slider package to create the windows, This creates a list with one tibble per element
+  skipgrams <- slider::slide(  
+    tbl,  # input table
+    .f = ~.x,  # slide over the only column in the tbl
+    .after = window_size - 1,  # inlcude the current word, plus x next words
+    .step = 1,  # number of words to shift forward
+    .complete = TRUE  # include only complete windows
+  )
+  
+  out <- map(seq_along(skipgrams),
+             function(i) safe_mutate(skipgrams[[i]], window_id = i))  # add the window id to the skipgrams
+  
+  # wrangle output into the right format
+  out |> 
+    transpose() |>
+    pluck("result") |>
+    compact() |>
+    bind_rows()
+}
+```
+
+We can test that on some toy data to see what is going on:
+
+```{r}
+toy_data <- tribble(
+  ~id, ~text,
+  1L, "I like cats. Cats are the best pets.",
+  2L, "I like dogs. Dogs are the best pets."
+)
+toy_data |> 
+  unnest_tokens("word", "text") |> 
+  nest(words = c(word), .by = id) |>
+  mutate(words = map(words, function(w) slide_windows(w, 3L))) |>
+  unnest(words)
+```
+
+The code makes sure that words close to each other have the same window_id and that words in different documents do not.
+
+We can now calculate the Pointwise mutual information (PMI) of pairs of words.
+Here, PMI expresses how statistically likely it is that two words co-occur in the same document.
+Calculating this takes a long time.
+Hence I prepared this step beforehand.
+
+```{r}
+if (!file.exists("data/speeches_pmi.rds")) {
+  plan(multisession)  ## for parallel processing
+  
+  tidy_pmi <- nested_words |>
+    mutate(words = future_map(words, function(w) slide_windows(w, 4L), .progress = TRUE)) |>
+    unnest(words) |>
+    unite(window_id, speech_id, window_id) |>
+    pairwise_pmi(word, window_id)
+  saveRDS(tidy_pmi, "data/speeches_pmi.rds")
+} else {
+  tidy_pmi <- readRDS("data/speeches_pmi.rds")
+}
+tidy_pmi
+```
+
+To get to the embedding vectors of the words, we use singular value decomposition (SVD). 
+SVD is a method for dimensionality reduction.
+In this case, we use `widely_svd`, which slightly obscures what dimensions will be reduced.
+Let's make the data wide first to understand the step better:
+
+```{r}
+tidy_pmi |> 
+  pivot_wider(id_cols = item1, names_from = item2, values_from = pmi)
+```
+
+Essentially, we have a feature-feature-matrix, with one row and one column per feature and the PMI value of them occuring together in the cells of the matrix.
+SVD now reduces the dimensionality of the y-axis of the matrix, but tries to keep as much of the information as possible.
+The number of dimensions left are determined beforehand and we choose 100 here.
+
+```{r}
+tidy_word_vectors <- tidy_pmi |>
+  widely_svd(
+    item = item1, 
+    feature = item2, 
+    value = pmi,
+    nv = 100, 
+    maxit = 1000
+  )
+
+tidy_word_vectors |> 
+  pivot_wider(id_cols = item1, names_from = dimension, values_from = value)
+```
+
+Every word is now expressed through the relation to all other words in the data.
+To find out which words are similarly used compared to word we choose, we can write a simple function that calculates the cosine similarity of rows in the matrix above and returns which rows are closest to the chosen one.
+
+```{r}
+nearest_neighbors <- function(tbl, word, n = 15) {
+  m <- cast_dfm(tbl, item1, dimension, value) # transform to wide
+  comp <- quanteda::dfm_subset(m, quanteda::docid(m) == word) # extract values for the provided word
+  if (nrow(comp) < 1L) stop("word ", word, " not found in the embedding")
+  sim <- proxyC::simil(comp, m, method = "cosine") # calculate cosine similarity
+  rank <- order(as.numeric(sim), decreasing = TRUE)[seq_len(n + 1)] # get the n highest values plus original word
+  
+  sim[1, rank] |> 
+    as_tibble(rownames = "neighbor")
+}
+```
+
+We can check a couple of examples:
+
+```{r}
+#| error: true
+nearest_neighbors(tidy_word_vectors, "damen")
+nearest_neighbors(tidy_word_vectors, "asyl")
+nearest_neighbors(tidy_word_vectors, "russland")
+nearest_neighbors(tidy_word_vectors, "österreich")
+```
+
+This seems to work really well, and we can think of a number of things we could do with this function:
+
+- find which words are used interchangeably to reduce features with advanced pre-processing
+- create or extend a dictionary or search string using the synonyms found
+- explore which words are used very often together
+
+The embeddings also make it possible to do math with language.
+The iconic example is king – man + woman = queen.
+Let's see if our embeddings can do a similar thing:
+
+```{r}
+m <- cast_dfm(tidy_word_vectors, item1, dimension, value) # transform to wide
+
+w1 <- quanteda::dfm_subset(m, quanteda::docid(m) == "konsumenten") # extract values for the provided word
+w2 <- quanteda::dfm_subset(m, quanteda::docid(m) == "mann") # extract values for the provided word
+comp <- w1 - w2
+
+sim <- proxyC::simil(comp, m, method = "cosine") # calculate cosine similarity
+rank <- order(as.numeric(sim), decreasing = TRUE)[seq_len(15)] # get the n highest values plus original word
+
+sim[1, rank] |> 
+  as_tibble(rownames = "neighbor")
+```
+
+It actually works as konsumenten - mann = konsumentinnen as the second highest value.
+
+
+# Pretrained Embeddings
+
+Pretrained embeddings contain the information learned from millions of text and make them availabe to process your data.
+Theoretically, this means that your analysis is supercharged as it makes use of the knowledge of language baked into the model.
+Let's see how we would encode our data using the famous GloVe (Global Vectors for Word Representation) [@glove].
+We use the smallest model here trained on Wikipedia and Gigaword 5 (6B tokens, 400K unique words);
+
+```{r}
+get_glove <- function(file, dimensions = c(50, 100, 200, 300)) {
+  # don't re-download files if present
+  if (!file.exists(file)) {
+    cache_loc <- file.path(dirname(file), "glove.6B.zip")
+    if (!file.exists(cache_loc)) {
+      curl::curl_download("http://nlp.stanford.edu/data/glove.6B.zip", cache_loc, quiet = FALSE)
+    }
+    unzip(cache_loc, files = basename(file), exdir = "data")
+  }
+  # read and process glove vectors
+  df <- data.table::fread(file, quote = "")
+  colnames(df) <- c("term", paste0("dim", seq_len(ncol(df) - 1)))
+  return(df)
+}
+glove_df <- get_glove("data/glove.6B.100d.txt", dimensions = 100)
+```
+
+One problem that we still need to solve is that we get one embedding per feature, not per document.
+There are different strategies to embed documents instead of just words.
+I have been workshopping this function, which encodes a document-feature-matrix using matrix multiplication.
+
+```{r}
+dfm_embed <- function(dfm, embedding_vectors) {
+  terms <- embedding_vectors$term
+  embedding_vectors$term <- NULL
+  mat <- as.matrix(embedding_vectors)
+  rownames(mat) <- terms
+  message("Some words in the dfm are not in the embedding vector. E.g.,: ", 
+          toString(colnames(dfm)[!colnames(dfm) %in% terms][1:20]))
+  
+  dfm <- quanteda.textmodels:::force_conformance(dfm, terms)
+  dfm_out <- as.dfm(
+    # matrix multiplication is used as one potential way of creating document
+    # embeddings. You can also use, e.g., the average value of word embeddings
+    # for words per document
+    dfm %*% mat[colnames(dfm), ]
+  )
+  docvars(dfm_out) <- docvars(dfm)
+  dfm_out
+}
+```
+
+Let's use the imdb dataset again and encode it using the GloVe embeddings.
+
+```{r}
+library(quanteda)
+library(quanteda.textmodels)
+imdb <- readRDS("data/imdb.rds")
+imdb_dfm <- imdb |> 
+  mutate(id = row_number()) |> 
+  corpus(
+    docid_field = "id",
+    text_field = "text"
+  ) |> 
+  tokens(
+    what = "word",
+    remove_punct = TRUE,
+    remove_symbols = TRUE,
+    remove_numbers = TRUE,
+    remove_url = TRUE,
+    remove_separators = TRUE
+  ) |> 
+  tokens_replace("(.+)'s", "\\1", valuetype = "regex") |> 
+  dfm(
+    tolower = TRUE
+  )
+  
+
+imdb_glove <- imdb_dfm |> 
+  dfm_embed(glove_df)
+imdb_glove
+```
+
+Instead of showing the features in the columns, the matrix multiplication combines the embeddings of each word in the dfm (and how often it is used!) into one vector (i.e., row in the data.frame).
+
+We can try again to find the nearest_neighbors.
+But this time, we will compare documents;
+
+```{r}
+nearest_neighbors2 <- function(m, word, n = 15) {
+  if (!quanteda::is.dfm(m)) {
+    m <- cast_dfm(tbl, item1, dimension, value) # transform to wide
+  }
+  comp <- quanteda::dfm_subset(m, quanteda::docid(m) == word) # extract values for the provided word
+  sim <- proxyC::simil(comp, m, method = "cosine") # calculate cosine similarity
+  rank <- order(as.numeric(sim), decreasing = TRUE)[seq_len(n + 1)] # get the n highest values plus original word
+  
+  sim[1, rank] |> 
+    as_tibble(rownames = "neighbor")
+}
+```
+
+
+```{r}
+nearest_neighbors2(imdb_glove, "1")
+imdb$text[1]
+imdb$text[4269]
+```
+
+I tried a few combinations, but this does not really seem to work.
+
+Instead, let's try to use the document-embeddings-matrix for machine learning.
+First we divide the data:
+
+```{r}
+set.seed(1)
+test_ids <- sample(docnames(imdb_glove), size = length(docnames(imdb_glove)) * 0.15)
+training_dfm <- dfm_subset(imdb_glove, !docnames(imdb_glove) %in% test_ids)
+test_dfm <- dfm_subset(imdb_glove, docnames(imdb_glove) %in% test_ids)
+```
+
+Then we use the SVM implementation in `quanteda.texmodels`:
+
+```{r}
+model_nb <- textmodel_svmlin(training_dfm, y = docvars(training_dfm, "label"))
+predicted_class <- predict(model_nb, newdata = test_dfm)
+caret::confusionMatrix(table(docvars(test_dfm, "label"), predicted_class))
+```
+
+This is a little underwhelming, but also not totally surprising.
+The problem is the error message that a lot of features were dropped.
+Only the features that are also in GloVe embeddings could be taken into account.
+Roughly half of all words were removed.
+
+We can also see how this would look like in tidymodels, since the embedding step is already implemented and has been properly tested there.
+For some reason, however, their `step_word_embeddings` is using a lot more memory, which is why I sample the data down to make it possible to run this:
+
+```{r}
+#| message: false
+library(tidymodels)
+library(textrecipes)
+set.seed(1)
+imdb_sample <- imdb |> 
+  sample_frac(size = 0.05)
+imdb_rec <- recipe(label ~ text, data = imdb_sample) %>%
+  step_tokenize(text, options = list(strip_punct = FALSE)) %>%
+  step_word_embeddings(text, embeddings = as_tibble(glove_df), aggregation =  "mean")
+```
+
+As before, we split the data:
+
+```{r}
+set.seed(1)
+split <- initial_split(
+  data = imdb_sample, 
+  prop = 3 / 4,   # the prop is the default, I just wanted to make that visible
+  strata = label  # this makes sure the prevalence of labels is still the same afterwards
+) 
+imdb_train <- training(split)
+imdb_test <- testing(split)
+```
+
+Let's bake the recipe and see how the embeddings look like that are created here:
+
+```{r}
+imdb_rec %>% 
+  prep(head(imdb)) %>%
+  bake(new_data = NULL)
+```
+
+They look very similar.
+But since we are taking the average here rather than multiplying the matrix, the values appear much smaller.
+
+So let's continue and add the algorithm:
+
+```{r}
+library(discrim)
+nb_spec <- naive_Bayes() %>%
+  set_mode("classification") %>%
+  set_engine("naivebayes")
+```
+
+Create our workflow:
+
+```{r}
+imdb_wf_nb <- workflow() %>% 
+  add_recipe(imdb_rec) %>% 
+  add_model(nb_spec)
+```
+
+And fit the model:
+
+```{r}
+model_nb <- fit(imdb_wf_nb, data = imdb_train)
+```
+
+Now let's predict the classes of the held out sample and compare it to the real ones:
+
+```{r}
+imdb_prediction <- imdb_test %>% 
+  bind_cols(predict(model_nb, new_data = imdb_test)) %>%
+  rename(truth = label, estimate = .pred_class)
+
+conf_mat(imdb_prediction, truth, estimate)
+```
+
+```{r}
+library(gt)
+my_metrics <- metric_set(accuracy, kap, precision, recall, f_meas)
+
+my_metrics(imdb_prediction, truth = truth, estimate = estimate) %>% 
+  gt() %>% 
+  data_color(
+    columns = .estimate,
+    fn = scales::col_numeric(
+      palette = c("red", "orange", "green"),
+      domain = c(0, 1)
+    )
+  )
+```
+
+This interestingly worked a lot better than my own function and quanteda.
+But still a lot worse than what we did in the previous session!
+We could probably improve this by using the larger GloVe model and fitting the model on the full data.
+But I could no longer load this into memory then!
+

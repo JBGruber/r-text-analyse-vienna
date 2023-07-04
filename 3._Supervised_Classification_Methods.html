@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.427">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Wouter van Atteveldt &amp; Kasper Welbers &amp; Johannes B. Gruber">
+<meta name="dcterms.date" content="2023-07-06">
+
+<title>Workshop Automated Content Analysis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="3._Supervised_Classification_Methods_files/libs/clipboard/clipboard.min.js"></script>
+<script src="3._Supervised_Classification_Methods_files/libs/quarto-html/quarto.js"></script>
+<script src="3._Supervised_Classification_Methods_files/libs/quarto-html/popper.min.js"></script>
+<script src="3._Supervised_Classification_Methods_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="3._Supervised_Classification_Methods_files/libs/quarto-html/anchor.min.js"></script>
+<link href="3._Supervised_Classification_Methods_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="3._Supervised_Classification_Methods_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="3._Supervised_Classification_Methods_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="3._Supervised_Classification_Methods_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="3._Supervised_Classification_Methods_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Workshop Automated Content Analysis</h1>
+<p class="subtitle lead">Session 3: Supervised Machine Learning</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Wouter van Atteveldt &amp; Kasper Welbers &amp; Johannes B. Gruber </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">July 6, 2023</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>We already briefly discussed supervised machine learning (SML) in the last session and used Ordinary Least Squares regression to predict a continuous variable. In text analysis, however, it is more common to predict categorical variables using different algorithms. The idea is always the same: you train a model using labelled data to then reproduce the classification on unseen documents. Importantly, we don’t just trust a model as it might contain substantial biases or be flat out wrong for other reasons. Instead, every model needs to be validated against documents with known labels before it is actually used.</p>
+<p>There are many different packages dealing with both training and validating models and they often come with a new syntax that you have to learn first. In this session, we will use the tidymodels framework, which wraps many common algorithms and promises to unify the syntax. Like the tidyverse, it is a collection of packages, rather than just one package:</p>
+<p><img src="https://jhudatascience.org/tidyversecourse/images/book_figures/simpletidymodels.png" class="img-fluid"></p>
+<p>This should not matter much in practice, but you might want to keep it in mind when asking questions on, e.g., stackoverflow. You should also note that the framework is meant for all modelling, not just for text analysis.</p>
+<p>For now, we simply use <code>tidymodels</code> an addition for text analysis called <code>textrecipes</code> and the normal <code>tidyverse</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching packages ────────────────────────────────────── tidymodels 1.1.0 ──</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ broom        1.0.4     ✔ recipes      1.0.6
+✔ dials        1.2.0     ✔ rsample      1.1.1
+✔ dplyr        1.1.2     ✔ tibble       3.2.1
+✔ ggplot2      3.4.2     ✔ tidyr        1.3.0
+✔ infer        1.0.4     ✔ tune         1.1.1
+✔ modeldata    1.1.0     ✔ workflows    1.1.3
+✔ parsnip      1.1.0     ✔ workflowsets 1.0.1
+✔ purrr        1.0.1     ✔ yardstick    1.2.0</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Conflicts ───────────────────────────────────────── tidymodels_conflicts() ──
+✖ purrr::discard() masks scales::discard()
+✖ dplyr::filter()  masks stats::filter()
+✖ dplyr::lag()     masks stats::lag()
+✖ recipes::step()  masks stats::step()
+• Search for functions across packages at https://www.tidymodels.org/find/</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(textrecipes)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse); <span class="fu">theme_set</span>(<span class="fu">theme_bw</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ forcats   1.0.0     ✔ readr     2.1.4
+✔ lubridate 1.9.2     ✔ stringr   1.5.0</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ readr::col_factor() masks scales::col_factor()
+✖ purrr::discard()    masks scales::discard()
+✖ dplyr::filter()     masks stats::filter()
+✖ stringr::fixed()    masks recipes::fixed()
+✖ dplyr::lag()        masks stats::lag()
+✖ readr::spec()       masks yardstick::spec()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+</div>
+</section>
+<section id="get-data" class="level1">
+<h1>Get data</h1>
+<p>We use data from a paper about sentiment analysis, which looked at IMDb reviews and coded if the reviews were positive and negative <span class="citation" data-cites="imdb2011">(<a href="#ref-imdb2011" role="doc-biblioref">Maas et al. 2011</a>)</span>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># you can ignore this part where I download and process the data. But I left it</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># in here in case you find it interesting.</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(<span class="st">"data/imdb.rds"</span>)) {</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  temp <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="fu">tempdir</span>(), <span class="st">"imdb"</span>) </span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dir.create</span>(temp, <span class="at">recursive =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  curl<span class="sc">::</span><span class="fu">curl_download</span>(<span class="st">"http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz"</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">file.path</span>(temp, <span class="st">"imdb.tar.gz"</span>), <span class="at">quiet =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">untar</span>(<span class="fu">file.path</span>(temp, <span class="st">"imdb.tar.gz"</span>), <span class="at">exdir =</span> temp)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  files <span class="ot">&lt;-</span> <span class="fu">list.files</span>(temp, </span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>                      <span class="at">pattern =</span> <span class="st">".txt"</span>, </span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>                      <span class="at">recursive =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>                      <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  pb <span class="ot">&lt;-</span> progress<span class="sc">::</span>progress_bar<span class="sc">$</span><span class="fu">new</span>(<span class="at">total =</span> <span class="fu">length</span>(files))</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  imdb <span class="ot">&lt;-</span> <span class="fu">map_df</span>(files, <span class="cf">function</span>(f) {</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    pb<span class="sc">$</span><span class="fu">tick</span>()</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tibble</span>(</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>      <span class="at">file =</span> f,</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>      <span class="at">text =</span> <span class="fu">readLines</span>(f, <span class="at">warn =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  }) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">label =</span> <span class="fu">str_extract</span>(file, <span class="st">"/pos/|/neg/"</span>),</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>           <span class="at">label =</span> <span class="fu">str_remove_all</span>(label, <span class="st">"/"</span>),</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>           <span class="at">label =</span> <span class="fu">factor</span>(label)) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(label)) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="sc">-</span>file)</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">saveRDS</span>(imdb, <span class="st">"data/imdb.rds"</span>)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>  imdb <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/imdb.rds"</span>)</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s have a quick look at the data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(imdb)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 50,000
+Columns: 2
+$ text  &lt;chr&gt; "Once again Mr. Costner has dragged out a movie for far longer t…
+$ label &lt;fct&gt; neg, neg, neg, neg, neg, neg, neg, neg, neg, neg, neg, neg, neg,…</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>imdb <span class="sc">%&gt;%</span> </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(label) <span class="sc">%&gt;%</span> </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> n, <span class="at">y =</span> label)) <span class="sc">+</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="3._Supervised_Classification_Methods_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>The prevalence of labels is exactly equal, which is an ideal scenario for SML (more later).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>imdb <span class="sc">%&gt;%</span> </span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">text_length =</span> <span class="fu">str_count</span>(text ,<span class="st">"</span><span class="sc">\\</span><span class="st">S+"</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(text_length)) <span class="sc">+</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">binwidth =</span> <span class="dv">50</span>) <span class="sc">+</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="cn">NULL</span>, <span class="at">title =</span> <span class="st">"Number of words in IMDb reviews"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="3._Supervised_Classification_Methods_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Most reviews have between 50 and 250 words, while some are significantly longer. It does not really matter how long the texts are, although very short texts are often hard to classify (as the weight of individual words is strongly increased).</p>
+</section>
+<section id="supervised-machine-learning-with-tidymodels" class="level1">
+<h1>Supervised machine learning with tidymodels</h1>
+<p>We proceed in 4 (or 5) steps:</p>
+<ol type="1">
+<li>preprocessing the incoming text</li>
+<li>splitting the dataset into training and a test set (which is not included in the model and just used for validation)</li>
+<li>fitting (or training) the model</li>
+<li>using the test set to compare predictions against the real values for validation</li>
+<li>(using the model on new documents)</li>
+</ol>
+<section id="using-textrecipes-to-turn-text-into-features" class="level2">
+<h2 class="anchored" data-anchor-id="using-textrecipes-to-turn-text-into-features">Using <code>textrecipes</code> to turn text into features</h2>
+<p>Previously, we have worked with <code>unnest_tokens</code> from tidytext and removed features like stopwords with dplyr verbs. We abstract this one step further with <code>textrecipes</code> (an extension of the <code>recipes</code> package) which handles all preprocessing in a unified syntax. Another difference to before is that we declare what we want to do right in the first line using the same syntax we would use for models like OLS in R:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>imdb_rec <span class="ot">&lt;-</span> <span class="fu">recipe</span>(label <span class="sc">~</span> text, <span class="at">data =</span> imdb) <span class="sc">%&gt;%</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_tokenize</span>(<span class="fu">all_predictors</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_stopwords</span>(<span class="at">language =</span> <span class="st">"en"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_tokenfilter</span>(<span class="fu">all_predictors</span>(), <span class="at">min_times =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">step_tf</span>(<span class="fu">all_predictors</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This was extremly fast, because nothing has actually been done yet. In the terminology of tidymodels, you just wrote a recipe, to actually do something, you also need to some “prepping” for the recipe and “baking” the training data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>imdb_rec <span class="sc">%&gt;%</span> </span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">prep</span>(imdb) <span class="sc">%&gt;%</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bake</span>(<span class="at">new_data =</span> <span class="cn">NULL</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 50,000 × 10
+   label tf_text_a tf_text_about tf_text_after tf_text_all tf_text_also
+   &lt;fct&gt;     &lt;int&gt;         &lt;int&gt;         &lt;int&gt;       &lt;int&gt;        &lt;int&gt;
+ 1 neg           3             3             0           2            0
+ 2 neg           3             1             0           0            0
+ 3 neg          19             1             1           2            3
+ 4 neg           4             1             0           0            0
+ 5 neg          19             1             0           2            0
+ 6 neg           4             0             0           1            0
+ 7 neg           6             1             0           2            1
+ 8 neg           8             3             0           1            0
+ 9 neg           4             0             0           0            0
+10 neg           3             0             0           0            0
+# ℹ 49,990 more rows
+# ℹ 4 more variables: tf_text_an &lt;int&gt;, tf_text_and &lt;int&gt;, tf_text_any &lt;int&gt;,
+#   tf_text_are &lt;int&gt;</code></pre>
+</div>
+</div>
+<p>You can see this looks very similar to the wide document feature matrix from before. But if you wanted to use the tidymodels framework for OLS or logisitc regression with survey data, the code would look almost exactly the same (just the individual steps would be different).</p>
+</section>
+<section id="splitting-the-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="splitting-the-dataset">Splitting the dataset</h2>
+<p>This is just one command, but it is important:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">initial_split</span>(</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> imdb, </span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">prop =</span> <span class="dv">3</span> <span class="sc">/</span> <span class="dv">4</span>,   <span class="co"># the prop is the default, I just wanted to make that visible</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">strata =</span> label  <span class="co"># this makes sure the prevalence of labels is still the same afterwards</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>) </span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>imdb_train <span class="ot">&lt;-</span> <span class="fu">training</span>(split)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>imdb_test <span class="ot">&lt;-</span> <span class="fu">testing</span>(split)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>You should also note that we do this split only once, which is generally not a good idea, as which texts end up in the training and test portion of the data can influence the performance metrics of the model. Some researchers have even been caught trying many different seeds to find one that delivers better looking results. What you should do instead is to use the <code>bootstraps()</code> to fit multiple different combinations. Check out one of <a href="https://youtu.be/z57i2GVcdww">Julia Silge’s videos</a> if you want to learn more.</p>
+</section>
+<section id="fitting-a-model" class="level2">
+<h2 class="anchored" data-anchor-id="fitting-a-model">Fitting a model</h2>
+<p>Let’s start with a naïve bayes model, for which we need another package which contains this “engine” (you don’t need to know this, the next step would tell you to load the package):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(discrim)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'discrim'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:dials':
+
+    smoothness</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>nb_spec <span class="ot">&lt;-</span> <span class="fu">naive_Bayes</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"classification"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"naivebayes"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now we bring the recipe and model together in a new workflow:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>imdb_wf_nb <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(imdb_rec) <span class="sc">%&gt;%</span> </span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(nb_spec)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now, we fit the model:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>model_nb <span class="ot">&lt;-</span> <span class="fu">fit</span>(imdb_wf_nb, <span class="at">data =</span> imdb_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="evaluating-the-model" class="level2">
+<h2 class="anchored" data-anchor-id="evaluating-the-model">Evaluating the model</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>imdb_prediction <span class="ot">&lt;-</span> imdb_test <span class="sc">%&gt;%</span> </span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(<span class="fu">predict</span>(model_nb, <span class="at">new_data =</span> imdb_test)) <span class="sc">%&gt;%</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">truth =</span> label, <span class="at">estimate =</span> .pred_class)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="fu">conf_mat</span>(imdb_prediction, truth, estimate)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          Truth
+Prediction  neg  pos
+       neg 2982  883
+       pos 3268 5367</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gt)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>my_metrics <span class="ot">&lt;-</span> <span class="fu">metric_set</span>(accuracy, kap, precision, recall, f_meas)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">my_metrics</span>(imdb_prediction, <span class="at">truth =</span> truth, <span class="at">estimate =</span> estimate) <span class="sc">%&gt;%</span> </span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data_color</span>(</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> .estimate,</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">colors =</span> scales<span class="sc">::</span><span class="fu">col_numeric</span>(</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"red"</span>, <span class="st">"orange"</span>, <span class="st">"green"</span>),</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">domain =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Since gt v0.9.0, the `colors` argument has been deprecated.
+• Please use the `fn` argument instead.
+This warning is displayed once every 8 hours.</code></pre>
+</div>
+<div class="cell-output-display">
+
+<div id="agrbjcxapj" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#agrbjcxapj table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#agrbjcxapj thead, #agrbjcxapj tbody, #agrbjcxapj tfoot, #agrbjcxapj tr, #agrbjcxapj td, #agrbjcxapj th {
+  border-style: none;
+}
+
+#agrbjcxapj p {
+  margin: 0;
+  padding: 0;
+}
+
+#agrbjcxapj .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#agrbjcxapj .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#agrbjcxapj .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#agrbjcxapj .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#agrbjcxapj .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#agrbjcxapj .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#agrbjcxapj .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#agrbjcxapj .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#agrbjcxapj .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#agrbjcxapj .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#agrbjcxapj .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#agrbjcxapj .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#agrbjcxapj .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#agrbjcxapj .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#agrbjcxapj .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#agrbjcxapj .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#agrbjcxapj .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#agrbjcxapj .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#agrbjcxapj .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#agrbjcxapj .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#agrbjcxapj .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#agrbjcxapj .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#agrbjcxapj .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#agrbjcxapj .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#agrbjcxapj .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#agrbjcxapj .gt_left {
+  text-align: left;
+}
+
+#agrbjcxapj .gt_center {
+  text-align: center;
+}
+
+#agrbjcxapj .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#agrbjcxapj .gt_font_normal {
+  font-weight: normal;
+}
+
+#agrbjcxapj .gt_font_bold {
+  font-weight: bold;
+}
+
+#agrbjcxapj .gt_font_italic {
+  font-style: italic;
+}
+
+#agrbjcxapj .gt_super {
+  font-size: 65%;
+}
+
+#agrbjcxapj .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#agrbjcxapj .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#agrbjcxapj .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#agrbjcxapj .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#agrbjcxapj .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#agrbjcxapj .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#agrbjcxapj .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+<table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id=".metric">.metric</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id=".estimator">.estimator</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id=".estimate">.estimate</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers=".metric" class="gt_row gt_left">accuracy</td>
+<td headers=".estimator" class="gt_row gt_left">binary</td>
+<td headers=".estimate" class="gt_row gt_right" style="background-color: #D4C800; color: #000000;">0.6679200</td></tr>
+    <tr><td headers=".metric" class="gt_row gt_left">kap</td>
+<td headers=".estimator" class="gt_row gt_left">binary</td>
+<td headers=".estimate" class="gt_row gt_right" style="background-color: #FF8200; color: #000000;">0.3358400</td></tr>
+    <tr><td headers=".metric" class="gt_row gt_left">precision</td>
+<td headers=".estimator" class="gt_row gt_left">binary</td>
+<td headers=".estimate" class="gt_row gt_right" style="background-color: #B3DB00; color: #000000;">0.7715395</td></tr>
+    <tr><td headers=".metric" class="gt_row gt_left">recall</td>
+<td headers=".estimator" class="gt_row gt_left">binary</td>
+<td headers=".estimate" class="gt_row gt_right" style="background-color: #FFA000; color: #000000;">0.4771200</td></tr>
+    <tr><td headers=".metric" class="gt_row gt_left">f_meas</td>
+<td headers=".estimator" class="gt_row gt_left">binary</td>
+<td headers=".estimate" class="gt_row gt_right" style="background-color: #E9B900; color: #000000;">0.5896194</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+</div>
+</div>
+<section id="quick-explanation-of-the-common-metrics" class="level3">
+<h3 class="anchored" data-anchor-id="quick-explanation-of-the-common-metrics">quick explanation of the common metrics</h3>
+<ol type="1">
+<li><p><strong>Precision</strong>: This is the ratio of correctly predicted positive observations to the total predicted positives. High precision means that an algorithm returned more relevant results than irrelevant ones.</p></li>
+<li><p><strong>Recall</strong> (Sensitivity): This is the ratio of correctly predicted positive observations to the all observations in actual class. High recall means that an algorithm returned most of the relevant results.</p></li>
+<li><p><strong>F1 Score</strong>: This is the weighted average of Precision and Recall. It tries to find the balance between precision and recall. High F1 score means that both recall and precision are high.</p></li>
+</ol>
+<p>We often use a confusion matrix to calculate these metrics. A confusion matrix is a 2x2 table that contains 4 outputs provided by the binary classifier. The terminology can vary, but it’s often formatted as follows:</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th>Actual Positive</th>
+<th>Actual Negative</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Predicted Positive</td>
+<td>True Positive (TP)</td>
+<td>False Positive (FP)</td>
+</tr>
+<tr class="even">
+<td>Predicted Negative</td>
+<td>False Negative (FN)</td>
+<td>True Negative (TN)</td>
+</tr>
+</tbody>
+</table>
+<p>Based on this matrix:</p>
+<ul>
+<li>Precision = TP / (TP + FP)</li>
+<li>Recall = TP / (TP + FN)</li>
+<li>F1 Score = 2<em>(Recall </em> Precision) / (Recall + Precision)</li>
+</ul>
+<p>A quick example: Let’s say we have a binary classifier that’s being used to predict whether a given email is “spam” (positive class) or “not spam” (negative class). Suppose our classifier is tested on a dataset of 100 emails, which include 20 actual spam messages and 80 actual non-spam messages. The classifier outputs the following results:</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th>Actual Spam</th>
+<th>Actual Not Spam</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Predicted Spam</td>
+<td>15 (TP)</td>
+<td>5 (FP)</td>
+</tr>
+<tr class="even">
+<td>Predicted Not Spam</td>
+<td>5 (FN)</td>
+<td>75 (TN)</td>
+</tr>
+</tbody>
+</table>
+<p>Here, the precision, recall, and F1 score would be calculated as:</p>
+<ul>
+<li>Precision = TP / (TP + FP) = 15 / (15 + 5) = 0.75</li>
+<li>Recall = TP / (TP + FN) = 15 / (15 + 5) = 0.75</li>
+<li>F1 Score = 2<em>(Recall </em> Precision) / (Recall + Precision) = 2<em>(0.75 </em> 0.75) / (0.75 + 0.75) = 0.75</li>
+</ul>
+<p>So in this case, the classifier has a precision of 0.75 (meaning that 75% of the emails it labeled as “spam” were actually spam), a recall of 0.75 (meaning that it correctly identified 75% of the total spam emails), and an F1 score of 0.75 (giving a balance between precision and recall). Which of these metrics is most useful depends on the task. If you detect cancer in patients, false positives are not great, but false negatives might be deadly! In this case you should optimise the recall and only look at the other metrics as an afterthought. However, most of the time, we want to get a good F1 value (rule of thumb is above 0.7 or better 0.8). Note that in most cases, we do not really care about a “positive” class as both classes are equally important. And often, we have more than 2 classes. A good strategy here is to calculate F1 for each class and reporting all values plus the average.</p>
+</section>
+</section>
+<section id="alternative-models" class="level2">
+<h2 class="anchored" data-anchor-id="alternative-models">Alternative models</h2>
+<p>and a lasso logistic regression model. For this we use two more packages:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>lasso_spec <span class="ot">&lt;-</span> <span class="fu">logistic_reg</span>(<span class="at">penalty =</span> <span class="fl">0.01</span>, <span class="at">mixture =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"classification"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"glmnet"</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>imdb_wf_lasso <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(imdb_rec) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(lasso_spec)</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>model_lasso <span class="ot">&lt;-</span> <span class="fu">fit</span>(imdb_wf_lasso, <span class="at">data =</span> imdb_train)</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>imdb_prediction_lasso <span class="ot">&lt;-</span> imdb_test <span class="sc">%&gt;%</span> </span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(<span class="fu">predict</span>(model_lasso, <span class="at">new_data =</span> imdb_test)) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">truth =</span> label, <span class="at">estimate =</span> .pred_class)</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>my_metrics <span class="ot">&lt;-</span> <span class="fu">metric_set</span>(accuracy, kap, precision, recall, f_meas)</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="fu">my_metrics</span>(imdb_prediction_lasso, <span class="at">truth =</span> truth, <span class="at">estimate =</span> estimate) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data_color</span>(</span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> .estimate,</span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">colors =</span> scales<span class="sc">::</span><span class="fu">col_numeric</span>(</span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"red"</span>, <span class="st">"orange"</span>, <span class="st">"green"</span>),</span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>      <span class="at">domain =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+
+<div id="emlvixduja" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#emlvixduja table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#emlvixduja thead, #emlvixduja tbody, #emlvixduja tfoot, #emlvixduja tr, #emlvixduja td, #emlvixduja th {
+  border-style: none;
+}
+
+#emlvixduja p {
+  margin: 0;
+  padding: 0;
+}
+
+#emlvixduja .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#emlvixduja .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#emlvixduja .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#emlvixduja .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#emlvixduja .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#emlvixduja .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#emlvixduja .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#emlvixduja .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#emlvixduja .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#emlvixduja .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#emlvixduja .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#emlvixduja .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#emlvixduja .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#emlvixduja .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#emlvixduja .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#emlvixduja .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#emlvixduja .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#emlvixduja .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#emlvixduja .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#emlvixduja .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#emlvixduja .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#emlvixduja .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#emlvixduja .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#emlvixduja .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#emlvixduja .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#emlvixduja .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#emlvixduja .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#emlvixduja .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#emlvixduja .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#emlvixduja .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#emlvixduja .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#emlvixduja .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#emlvixduja .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#emlvixduja .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#emlvixduja .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#emlvixduja .gt_left {
+  text-align: left;
+}
+
+#emlvixduja .gt_center {
+  text-align: center;
+}
+
+#emlvixduja .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#emlvixduja .gt_font_normal {
+  font-weight: normal;
+}
+
+#emlvixduja .gt_font_bold {
+  font-weight: bold;
+}
+
+#emlvixduja .gt_font_italic {
+  font-style: italic;
+}
+
+#emlvixduja .gt_super {
+  font-size: 65%;
+}
+
+#emlvixduja .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#emlvixduja .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#emlvixduja .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#emlvixduja .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#emlvixduja .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#emlvixduja .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#emlvixduja .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+<table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id=".metric">.metric</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id=".estimator">.estimator</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id=".estimate">.estimate</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers=".metric" class="gt_row gt_left">accuracy</td>
+<td headers=".estimator" class="gt_row gt_left">binary</td>
+<td headers=".estimate" class="gt_row gt_right" style="background-color: #C3D200; color: #000000;">0.7213600</td></tr>
+    <tr><td headers=".metric" class="gt_row gt_left">kap</td>
+<td headers=".estimator" class="gt_row gt_left">binary</td>
+<td headers=".estimate" class="gt_row gt_right" style="background-color: #FF9900; color: #000000;">0.4427200</td></tr>
+    <tr><td headers=".metric" class="gt_row gt_left">precision</td>
+<td headers=".estimator" class="gt_row gt_left">binary</td>
+<td headers=".estimate" class="gt_row gt_right" style="background-color: #BDD600; color: #000000;">0.7413222</td></tr>
+    <tr><td headers=".metric" class="gt_row gt_left">recall</td>
+<td headers=".estimator" class="gt_row gt_left">binary</td>
+<td headers=".estimate" class="gt_row gt_right" style="background-color: #D0CA00; color: #000000;">0.6800000</td></tr>
+    <tr><td headers=".metric" class="gt_row gt_left">f_meas</td>
+<td headers=".estimator" class="gt_row gt_left">binary</td>
+<td headers=".estimate" class="gt_row gt_right" style="background-color: #C7D000; color: #000000;">0.7093382</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+</div>
+</div>
+</section>
+<section id="additional-step-looking-inside-the-model" class="level2">
+<h2 class="anchored" data-anchor-id="additional-step-looking-inside-the-model">Additional step: looking inside the model</h2>
+<p>So the accuracy is above chance, but rather underwhelming. From the confusion matrix and metrics, we know that the model leans to predictiing positive, even when the true values are negative. A way to make sense of a model is to look at coefficienst, as we’ve done before. This tells us essentially, what the model thinks are important terms to say a document is positive or negative.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>model_lasso <span class="sc">%&gt;%</span> </span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">extract_fit_engine</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  vip<span class="sc">::</span><span class="fu">vi</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(Sign) <span class="sc">%&gt;%</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(Importance, <span class="at">n =</span> <span class="dv">20</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">Variable =</span> <span class="fu">str_remove</span>(Variable, <span class="st">"tfidf_text_"</span>),</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">Variable =</span> <span class="fu">fct_reorder</span>(Variable, Importance)</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Importance, <span class="at">y =</span> Variable, <span class="at">fill =</span> Sign)) <span class="sc">+</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">show.legend =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Sign, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="cn">NULL</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="3._Supervised_Classification_Methods_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>The positive predictors make perfect sense: <em>great</em>, <em>well</em>, <em>good</em>, etc. So, interestingly <em>bad</em>, <em>no</em>, and <em>even</em> are the best negative predictors, closely followed by a lot of words that hardly convey meaning. This makes it interesting to see if using ngrams will help performance, as it is quite possible that combinations like <em>not good</em> would be better predictors. Have a look at the <a href="https://textrecipes.tidymodels.org/reference/">textrecipes documentation</a> to see the possibilities for text preprocessing.</p>
+<p>Also, we just tried out a regularization penalty of 0.1, and it is quite possible that this is not the best choice possible. Thus, it is a good idea to now do some hyperparameter tuning for the regularization penalty and other parameters. Take a look at the <a href="machine_learning.md">machine learning handout</a> and/or the <a href="https://tune.tidymodels.org/">tune documentation</a> to see how to do parameter tuning.</p>
+<p>Of course, you can also try one of the other classification models in <a href="https://parsnip.tidymodels.org/">parsnip</a>, and/or try a regression model instead to predict the actual star value.</p>
+</section>
+<section id="alternative-framework-quanteda.textmodels" class="level2">
+<h2 class="anchored" data-anchor-id="alternative-framework-quanteda.textmodels">Alternative Framework: quanteda.textmodels</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(quanteda)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Package version: 3.3.0
+Unicode version: 15.0
+ICU version: 72.1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Parallel computing: 12 of 12 threads used.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>See https://quanteda.io for tutorials and examples.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(quanteda.textmodels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<ol type="1">
+<li>preprocessing the incoming text</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>imdb_dfm <span class="ot">&lt;-</span> imdb <span class="sc">|&gt;</span> </span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">id =</span> <span class="fu">row_number</span>()) <span class="sc">|&gt;</span> </span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">corpus</span>(</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">docid_field =</span> <span class="st">"id"</span>,</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">text_field =</span> <span class="st">"text"</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tokens</span>(</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">what =</span> <span class="st">"word"</span>,</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">remove_punct =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">remove_symbols =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">remove_numbers =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">remove_url =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">remove_separators =</span> <span class="cn">TRUE</span></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dfm</span>(</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">tolower =</span> <span class="cn">TRUE</span></span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<ol start="2" type="1">
+<li>splitting the dataset into training and a test set (which is not included in the model and just used for validation)</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>test_ids <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">docnames</span>(imdb_dfm), <span class="at">size =</span> <span class="fu">length</span>(<span class="fu">docnames</span>(imdb_dfm)) <span class="sc">*</span> <span class="fl">0.15</span>)</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>training_dfm <span class="ot">&lt;-</span> <span class="fu">dfm_subset</span>(imdb_dfm, <span class="sc">!</span><span class="fu">docnames</span>(imdb_dfm) <span class="sc">%in%</span> test_ids)</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>test_dfm <span class="ot">&lt;-</span> <span class="fu">dfm_subset</span>(imdb_dfm, <span class="fu">docnames</span>(imdb_dfm) <span class="sc">%in%</span> test_ids)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<ol start="3" type="1">
+<li>fitting (or training) the model</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>model_nb <span class="ot">&lt;-</span> <span class="fu">textmodel_nb</span>(training_dfm, <span class="at">y =</span> <span class="fu">docvars</span>(training_dfm, <span class="st">"label"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>(alternative classification algorithms are <code>textmodel_lr</code>, <code>textmodel_svm</code> and <code>textmodel_svmlin</code>)</p>
+<ol start="4" type="1">
+<li>using the test set to compare predictions against the real values for validation</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>predicted_class <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_nb, <span class="at">newdata =</span> test_dfm)</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>caret<span class="sc">::</span><span class="fu">confusionMatrix</span>(<span class="fu">table</span>(<span class="fu">docvars</span>(test_dfm, <span class="st">"label"</span>), predicted_class))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Confusion Matrix and Statistics
+
+     predicted_class
+       neg  pos
+  neg 3280  458
+  pos  696 3066
+                                          
+               Accuracy : 0.8461          
+                 95% CI : (0.8378, 0.8542)
+    No Information Rate : 0.5301          
+    P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+                                          
+                  Kappa : 0.6923          
+                                          
+ Mcnemar's Test P-Value : 3.024e-12       
+                                          
+            Sensitivity : 0.8249          
+            Specificity : 0.8700          
+         Pos Pred Value : 0.8775          
+         Neg Pred Value : 0.8150          
+             Prevalence : 0.5301          
+         Detection Rate : 0.4373          
+   Detection Prevalence : 0.4984          
+      Balanced Accuracy : 0.8475          
+                                          
+       'Positive' Class : neg             
+                                          </code></pre>
+</div>
+</div>
+<ol start="5" type="1">
+<li>(using the model on new documents)</li>
+</ol>
+</section>
+</section>
+<section id="exercise-tasks" class="level1">
+<h1>Exercise Tasks</h1>
+<ol type="1">
+<li><p>Use a support vector machine model instead of the naive bayes or lasso regression shown above</p></li>
+<li><p>What would be the steps and functions you need to predict the party membership of a president in the SOTU addresses data?</p></li>
+</ol>
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-imdb2011" class="csl-entry" role="listitem">
+Maas, Andrew L., Raymond E. Daly, Peter T. Pham, Dan Huang, Andrew Y. Ng, and Christopher Potts. 2011. <span>“Learning Word Vectors for Sentiment Analysis.”</span> In <em>Proceedings of the 49th Annual Meeting of the Association for Computational Linguistics: Human Language Technologies</em>, 142–50. Portland, Oregon, USA: Association for Computational Linguistics. <a href="http://www.aclweb.org/anthology/P11-1015">http://www.aclweb.org/anthology/P11-1015</a>.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

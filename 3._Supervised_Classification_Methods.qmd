@@ -113,8 +113,10 @@ Another difference to before is that we declare what we want to do right in the 
 
 ```{r}
 imdb_rec <- recipe(label ~ text, data = imdb) %>%
-  step_tokenize(text) %>%
-  step_word_embeddings(text, embeddings = as_tibble(glove_df))
+  step_tokenize(all_predictors()) %>%
+  step_stopwords(language = "en") %>% 
+  step_tokenfilter(all_predictors(), min_times = 3) %>%
+  step_tf(all_predictors())
 ```
 
 This was extremly fast, because nothing has actually been done yet.
