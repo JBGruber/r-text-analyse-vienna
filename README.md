@@ -24,7 +24,10 @@ this workshop to get an overview of available approaches. Or you can try
 to get up to speed by using the book [R for Data Science (Wickham and
 Grolemund 2023)](https://r4ds.had.co.nz/) or a [refresher
 document](https://github.com/JBGruber/r-text-analyse-vienna/blob/main/1_Obtaining_Text_Data.qmd)
-that I added to the course.
+that I added to the course. If you are coming from **Python**, you could
+have a look at [Computational Analysis of
+Communication](https://cssbook.net/), which has code for many autmated
+content analysis task in Python and R side-by-side.
 
 ## Download the project
 
