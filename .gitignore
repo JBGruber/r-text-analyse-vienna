@@ -12,6 +12,7 @@ data/iran_tweets.csv.zip
 data/plenary_speeches_tidy.rds
 data/glove.6B.100d.txt
 data/plenary_speeches_tidy.csv
+data/5_imdb_roberta.rds
 python-env/
 .Renviron
 model/
@@ -20,3 +21,6 @@ runs/
 cache_dir/
 data/5_imdb_distilbert.rds
 data/5_imdb_distilbert_prediction.rds
+data/5._bertopic
+1_Theory_files/
+1_Theory.html

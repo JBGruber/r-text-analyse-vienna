@@ -54,39 +54,48 @@ imdb_test <- testing(split)
 ```{r}
 #| eval: false
 install.packages("grafzahl")
-grafzahl::setup_grafzahl(cuda = FALSE, cuda_version = "12.0")
+grafzahl::setup_grafzahl(cuda = TRUE, cuda_version = "12.0")
 ```
 
 
 ```{r grafzahl}
-library(grafzahl)
-model <- grafzahl(x = imdb_train$text,
-                  y = imdb_train$label,
-                  model_name = "distilbert-base-uncased",
-                  output_dir = "model",
-                  cuda = TRUE,
-                  num_train_epochs = 1,
-                  train_size = 1)
-saveRDS(model, "8_imdb_distilbert.rds")
-# model <- readRDS("8_imdb_distilbert.rds")
+if (!file.exists("data/5_imdb_distilbert.rds")) {
+  library(grafzahl)
+  model <- grafzahl(x = imdb_train$text,
+                    y = imdb_train$label,
+                    model_name = "distilbert-base-uncased",
+                    output_dir = "model",
+                    cuda = TRUE,
+                    num_train_epochs = 1,
+                    train_size = 1)
+  saveRDS(model, "data/5_imdb_distilbert.rds")
+} else {
+  model <- readRDS("data/5_imdb_distilbert.rds")
+}
 ```
 
 
-```{r}
+```{r metrics}
 library(gt)
-# prediction <- readRDS("8_imdb_distilbert_prediction.rds")
-imdb_prediction <- imdb_test %>% 
-  bind_cols(estimate = predict(model, newdata = imdb_test$text)) %>%
+if (!file.exists("data/5_imdb_distilbert_prediction.rds")) {
+  library(grafzahl)
+  estimates <- predict(model, newdata = imdb_test$text)
+  saveRDS(estimates, "data/5_imdb_distilbert_prediction.rds")
+} else {
+  estimates <- readRDS("data/5_imdb_distilbert_prediction.rds")
+}
+imdb_prediction <- imdb_test |>  
+  bind_cols(estimate = estimates) |> 
   mutate(truth = factor(label),
          estimate = factor(estimate))
 
 my_metrics <- metric_set(accuracy, kap, precision, recall, f_meas)
 
-my_metrics(imdb_prediction, truth = truth, estimate = estimate) %>% 
-  gt() %>% 
+my_metrics(imdb_prediction, truth = truth, estimate = estimate) |>  
+  gt() |>  
   data_color(
     columns = .estimate,
-    colors = scales::col_numeric(
+    fn = scales::col_numeric(
       palette = c("red", "orange", "green"),
       domain = c(0, 1)
     )
@@ -185,6 +194,7 @@ py_config()
 ```{r}
 #| eval: false
 reticulate::py_install(c(
+  "scikit-learn<1.3.0",
   "bertopic", # this one requires some build tools not usually available on Windows, comment out to install the rest
   "sentence_transformers",
   "simpletransformers"
@@ -247,17 +257,17 @@ predictions, raw_outputs = roberta_model.predict(test_l)
 ```
 
 ```{r}
-imdb_prediction <- imdb_test %>% 
-  bind_cols(estimate = factor(c("neg", "pos"))[py$predictions + 1]) %>%
+imdb_prediction <- imdb_test |>  
+  bind_cols(estimate = factor(c("neg", "pos"))[py$predictions + 1]) |> 
   mutate(truth = factor(label))
 
-saveRDS(imdb_prediction, "8_imdb_roberta.rds")
-# imdb_prediction <- readRDS("8_imdb_roberta.rds")
+saveRDS(imdb_prediction, "data/5_imdb_roberta.rds")
+# imdb_prediction <- readRDS("data/5_imdb_roberta.rds")
 
 my_metrics <- metric_set(accuracy, kap, precision, recall, f_meas)
 
-my_metrics(imdb_prediction, truth = truth, estimate = estimate) %>% 
-  gt() %>% 
+my_metrics(imdb_prediction, truth = truth, estimate = estimate) |>  
+  gt() |>  
   data_color(
     columns = .estimate,
     colors = scales::col_numeric(
@@ -275,6 +285,7 @@ This dataset contains Guardian newspaper articles in politics, economy, society 
 ```{r}
 library(quanteda.corpora)
 corp_news <- download("data_corpus_guardian")[["documents"]]
+corp_news_texts <- corp_news$texts
 ```
 
 ```{python bertopic}
@@ -282,26 +293,32 @@ from bertopic import BERTopic
 from sentence_transformers import SentenceTransformer
 from umap import UMAP
 
+# To make this example reproducible
+umap_model = UMAP(n_neighbors=15, n_components=5, 
+                  min_dist=0.0, metric='cosine', random_state=42)
+
 # confusingly, this is the setup part
 topic_model = BERTopic(language="english",
                        top_n_words=5,
                        n_gram_range=(1, 2),
                        nr_topics="auto", # change if you want a specific nr of topics
                        calculate_probabilities=True,
-                       umap_model=UMAP(random_state=42)) # make reproducible
+                       umap_model=umap_model)
 
 # and only here we actually run something
 topics, doc_topic = topic_model.fit_transform(r.corp_news.texts)
+
+# save the model
+topic_model.save("data/5._bertopic")
+# topic_model=BERTopic.load("data/5._bertopic")
 ```
 
 Unlike traditional topic models, BERTopic uses an algorithm that automatically determines a sensible number of topics and also automatically labels topics:
 
 ```{r}
 topic_model <- py$topic_model
-saveRDS(topic_model, "8_topic_model.rds")
-# topic_model <- readRDS("8_topic_model.rds")
 topic_labels <- tibble(topic = as.integer(names(topic_model$topic_labels_)),
-                       label = unlist(topic_model$topic_labels_ )) %>%
+                       label = unlist(topic_model$topic_labels_ ))  |> 
   mutate(label = fct_reorder(label, topic))
 topic_labels
 ```
@@ -311,7 +328,7 @@ Note that -1 describes a trash topic with words and documents that do not really
 ```{r}
 top_words <- map_df(names(topic_model$topic_representations_), function(t) {
   map_df(topic_model$topic_representations_[[t]], function(y)
-    tibble(feature = y[[1]], prob = y[[2]])) %>%
+    tibble(feature = y[[1]], prob = y[[2]])) |> 
     mutate(topic = as.integer(t), .before = 1L)
 })
 ```
@@ -320,10 +337,10 @@ We can plot them in the same way as in the last session:
 
 ```{r}
 library(tidytext)
-top_words %>%
-  filter(topic %in% c(1, 7, 44, 53, 65, 66)) %>% # select a couple of topics
-  left_join(topic_labels, by = "topic") %>%
-  mutate(feature = reorder_within(feature, prob, topic)) %>%
+top_words |> 
+  filter(topic %in% c(1, 7, 44, 53, 65, 66)) |>  # select a couple of topics
+  left_join(topic_labels, by = "topic") |> 
+  mutate(feature = reorder_within(feature, prob, topic)) |> 
   ggplot(aes(x = prob, y = feature, fill = topic, label = label)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(vars(label), ncol = 2, scales = "free_y") +
@@ -347,7 +364,7 @@ htmltools::includeHTML("media/bert_corp_news_intertopic.html")
 BERTopic also classifies documents into the topic categories (again not really how you should use LDA topicmodels). And provides a nice visualisation for trends over time. Unfortunately, the date format in R does not translate automagically to Python, hence we need to convert the dates to strings:
 
 ```{r}
-corp_news_t <- corp_news %>%
+corp_news_t <- corp_news |> 
   mutate(date_chr = as.character(date))
 ```
 
@@ -366,5 +383,13 @@ fig_overtime.write_html("media/fig_overtime.html")
 
 ```{r}
 htmltools::includeHTML("media/fig_overtime.html")
+```
+
+
+# wrap up
+
+```{r}
+sessionInfo()
+py_list_packages()
 ```
 
