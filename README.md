@@ -19,10 +19,13 @@ reading.
 
 I assume that you have [R](https://cran.rstudio.com/) and
 [RStudio](https://posit.co/download/rstudio-desktop/) installed and have
-some basic knowledge of R. If that is not the case, you can also use
-this workshop to get an overview of available approaches. Or you can try
-to get up to speed by using the book [R for Data Science (Wickham and
-Grolemund 2023)](https://r4ds.had.co.nz/) or a [refresher
+some basic knowledge of R. It makes sense to have a somewhat new version
+of R. Maybe update it and get your old pacakges back using this little
+[function](https://gist.github.com/JBGruber/28c79af6d5f9015370feef31da2cb1da).
+If that is not the case, you can also use this workshop to get an
+overview of available approaches. Or you can try to get up to speed by
+using the book [R for Data Science (Wickham and Grolemund
+2023)](https://r4ds.had.co.nz/) or a [refresher
 document](https://github.com/JBGruber/r-text-analyse-vienna/blob/main/1_Obtaining_Text_Data.qmd)
 that I added to the course. If you are coming from **Python**, you could
 have a look at [Computational Analysis of
