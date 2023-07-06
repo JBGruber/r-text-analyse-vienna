@@ -161,12 +161,20 @@ textplot_scale1d(plenary_parties_ws,
 ```
 
 ```{r}
-#| eval: false
-summary(plenary_parties_ws)
-word_scores <- coef(plenary_parties_ws) |> 
-  as_tibble(rownames = "word") |>
-  rename(score = value) |> 
-  left_join(top_words, by = "word")
+summary(plenary_parties_ws) # Calculates summary statistics of the plenary_parties_ws object
+word_scores <- coef(plenary_parties_ws) |> # Creates a vector of coefficients from the plenary_parties_ws object
+  as_tibble(rownames = "word") |> # Converts the vector to a tibble with the rownames set to "word"
+  rename(score = value) |> # Renames the value column to "score"
+  left_join(top_words, by = "word") # Joins the top_words tibble to the word_scores tibble on the "word" column
+
+word_scores  |>  
+  arrange(-n)
+
+word_scores |> 
+  arrange(-score)
+
+word_scores |> 
+  arrange(score)
 ```
 
 ## wordfish - unsupervised scaling
