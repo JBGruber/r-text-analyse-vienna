@@ -32,6 +32,7 @@ library(textrecipes)
 library(tidyverse); theme_set(theme_bw())
 ```
 
+To find the currently available models, you can use this website: <https://www.tidymodels.org/find/parsnip/>
 
 # Get data
 
@@ -124,9 +125,8 @@ In the terminology of tidymodels, you just wrote a recipe, to actually do someth
 
 ```{r}
 imdb_rec %>% 
-  prep(imdb) %>%
-  bake(new_data = NULL) %>% 
-  select(1:10)
+  prep(head(imdb, 10)) %>%
+  bake(new_data = NULL)
 ```
 
 You can see this looks very similar to the wide document feature matrix from before.
@@ -195,7 +195,7 @@ my_metrics(imdb_prediction, truth = truth, estimate = estimate) %>%
   gt() %>% 
   data_color(
     columns = .estimate,
-    colors = scales::col_numeric(
+    fn = scales::col_numeric(
       palette = c("red", "orange", "green"),
       domain = c(0, 1)
     )
@@ -241,7 +241,7 @@ Here, the precision, recall, and F1 score would be calculated as:
 So in this case, the classifier has a precision of 0.75 (meaning that 75% of the emails it labeled as "spam" were actually spam), a recall of 0.75 (meaning that it correctly identified 75% of the total spam emails), and an F1 score of 0.75 (giving a balance between precision and recall).
 Which of these metrics is most useful depends on the task.
 If you detect cancer in patients, false positives are not great, but false negatives might be deadly!
-In this case you should optimise the recall and only look at the other metrics as an afterthought.
+In this case you should optimise the **recall** and only look at the other metrics as an afterthought.
 However, most of the time, we want to get a good F1 value (rule of thumb is above 0.7 or better 0.8).
 Note that in most cases, we do not really care about a "positive" class as both classes are equally important.
 And often, we have more than 2 classes.
@@ -296,7 +296,7 @@ model_lasso %>%
   slice_max(Importance, n = 20) %>% 
   ungroup() %>%
   mutate(
-    Variable = str_remove(Variable, "tfidf_text_"),
+    Variable = str_remove(Variable, "tf_text_"),
     Variable = fct_reorder(Variable, Importance)
   ) %>%
   ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
@@ -349,7 +349,7 @@ imdb_dfm <- imdb |>
 
 ```{r}
 set.seed(1)
-test_ids <- sample(docnames(imdb_dfm), size = length(docnames(imdb_dfm)) * 0.15)
+test_ids <- sample(docnames(imdb_dfm), size = length(docnames(imdb_dfm)) * 0.25)
 training_dfm <- dfm_subset(imdb_dfm, !docnames(imdb_dfm) %in% test_ids)
 test_dfm <- dfm_subset(imdb_dfm, docnames(imdb_dfm) %in% test_ids)
 ```
@@ -377,4 +377,10 @@ caret::confusionMatrix(table(docvars(test_dfm, "label"), predicted_class))
 1.  Use a support vector machine model instead of the naive bayes or lasso regression shown above
 
 2.  What would be the steps and functions you need to predict the party membership of a president in the SOTU addresses data?
+
+```{r}
+library(sotu)
+sotu <- sotu::sotu_meta |> 
+  mutate(text = sotu::sotu_text)
+```
 
