@@ -36,6 +36,27 @@ R has excellent wrappers for languages like C, C++, Rust or Java, but Python sti
 Packages like `spacyr` and `grafzahl` try to employ Python anyway through the `reticulate` compatibility layer.
 (They do still have some issues to figure out.)
 
+Let's see how we can use `grafzahl` for classifying the imdb data again, which we used in the supervised machine learning session.
+As a first step, we have to set up the package:
+
+```{r}
+#| eval: false
+install.packages("grafzahl")
+grafzahl::setup_grafzahl(cuda = grafzahl::detect_cuda())
+```
+
+This installs a small version of Python on your systems and sets up R to use it.
+The `cuda` argument essentially controls whether `grafzahl` can access your NVIDIA graphics card.
+If you do not have one of these cards, you can still use the underlying models, but they will take very long to do anything.
+
+The steps for SML are still the same:
+
+1. preprocessing the incoming text
+
+We do not really have to do anything here as transformer models already take care of most steps and the dataset we are using is already quite clean.
+
+2. splitting the dataset into training and a test set (which is not included in the model and just used for validation)
+
 ```{r}
 library(tidyverse)
 library(tidymodels)
@@ -50,13 +71,7 @@ imdb_train <- training(split)
 imdb_test <- testing(split)
 ```
 
-
-```{r}
-#| eval: false
-install.packages("grafzahl")
-grafzahl::setup_grafzahl(cuda = TRUE, cuda_version = "12.0")
-```
-
+3. fitting (or training) the model
 
 ```{r grafzahl}
 if (!file.exists("data/5_imdb_distilbert.rds")) {
@@ -74,6 +89,10 @@ if (!file.exists("data/5_imdb_distilbert.rds")) {
 }
 ```
 
+If you do not have a graphics card, this step will take a long time.
+![](media/grafzahl_local.png)
+
+4. using the test set to compare predictions against the real values for validation
 
 ```{r metrics}
 library(gt)
@@ -147,7 +166,7 @@ if (R.Version()$os == "mingw32") {
 I choose the main Python installation in "/usr/bin/python" and use it as the base for a virtual environment. If you don't have any Python version on your system, you can install one with `reticulate::install_miniconda()`.
 
 ```{r}
-# I build in this if condition to not accidentally overwrite the environment when rerunning the notebook
+# I added this if condition to not accidentally overwrite the environment when rerunning the notebook
 if (!reticulate::virtualenv_exists(envname = "./python-env/")) {
   reticulate::virtualenv_create("./python-env/", python = "/usr/bin/python")
   # for Windows the path is usually "C:/Users/{user}/AppData/Local/r-miniconda/python.exe"
@@ -195,7 +214,7 @@ py_config()
 #| eval: false
 reticulate::py_install(c(
   "scikit-learn<1.3.0",
-  "bertopic", # this one requires some build tools not usually available on Windows, comment out to install the rest
+  "bertopic==0.14.1", # this one requires some build tools not usually available on Windows, comment out to install the rest
   "sentence_transformers",
   "simpletransformers"
 ))
@@ -203,7 +222,9 @@ reticulate::py_install(c(
 
 ## Recreating `grafzahl` from Python
 
-To demonstrate the workflow for `reticulate`, we do the same analysis as above, but rely on Python functions
+(if you do not have an NVIDIA graphics card, following these steps locally does not make a lot of sense. You can instead run this on this [Google colab](
+https://colab.research.google.com/drive/1k4nfmTcb-qm6QXKNeTQGiCUMcsDYrBhG?usp=sharing) I created.)
+To demonstrate the workflow for `reticulate`, we do the same analysis as above, but rely on Python functions:
 
 ```{python}
 #| message: false
@@ -214,7 +235,7 @@ import os
 import torch
 from simpletransformers.classification import ClassificationModel
 
-# args copied from grafzahl
+# args copied from grafzahl, learn more at https://simpletransformers.ai/docs/usage/
 model_args = {
   "num_train_epochs": 1, # increase for multiple runs, which can yield better performance
   "use_multiprocessing": False,

@@ -398,7 +398,7 @@ To get the data into R, you only need one line
 library(rwhatsapp)
 chat_data <- rwa_read("/home/johannes/Dropbox/WhatsApp Chat with Alexandra Ils.txt")
 chat_data |> 
-  filter(!is.name(author)) |> 
+  filter(!is.na(author)) |> 
   mutate(date = as.Date(time)) |> 
   count(date, author) |> 
   ggplot(aes(x = date, y = n, colour = author)) +

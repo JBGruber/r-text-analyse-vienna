@@ -193,6 +193,22 @@ textplot_scale1d(plenary_parties_wf, margin = "features")
 
 Wordfish automatically scales all documents according to an underlying latent variable (the beta), which is assumed to correspond to the most interesting dimension in the data.
 
+```{r}
+word_fish_scores <- coef(plenary_parties_wf)$features |> # Creates a vector of coefficients from the plenary_parties_ws object
+  as_tibble(rownames = "word") |> # Converts the vector to a tibble with the rownames set to "word"
+  left_join(top_words, by = "word")
+
+word_fish_scores |> 
+  arrange(-n)
+
+word_fish_scores |> 
+  arrange(-beta)
+
+word_fish_scores |> 
+  arrange(beta)
+```
+
+
 ### Exercise Tasks: scaling
 
 1. Load a dataset of your choice into R (e.g., WhatsApp data, the CCS Lab descriptions, the Kaggle Twitter dataset)

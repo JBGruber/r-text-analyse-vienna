@@ -27,6 +27,13 @@ The big advantages of word embeddings are that the reduced number of dimensions 
 - analyses are far less expensive (however, the encoding step might be)
 - the embeddings reflect the computer's understanding of language that it learned from the training corpus
 
+Especially the last point makes word embedding an important pe-processing step.
+Think about words with a similar or the same meaning or misspelled words.
+In a regular document-feature matrix, they are all treated as completely distinct features.
+Since essentially all techniques of computational analysis of text are based on co-occurrence of words, two texts containing differently spelled words with the same meaning are treated as if they did not have this link to one another.
+There are several techniques that can circumvent this problem, like stemming and lemmatisation (which unify different forms of the same word), automated spelling correction or using manually created dictionaries of synonyms that can be used to join feature columns in a dfm.
+Word embedding techniques follow a different strategy by trying to encode the meaning of words trhough the company they keep.
+
 In this session we train an embedding model following the steps from [Supervised Machine Learning for Text Analysis in R](https://smltar.com/embeddings.html).
 For a long time, word embeddings performed similarly to other preprocessing steps.
 Sometimes it improved models, sometimes it didn't.
@@ -135,7 +142,7 @@ if (!file.exists("data/speeches_pmi.rds")) {
 tidy_pmi
 ```
 
-To get to the embedding vectors of the words, we use singular value decomposition (SVD). 
+To get to the embedding vectors of the words, we use **singular value decomposition** (SVD). 
 SVD is a method for dimensionality reduction.
 In this case, we use `widely_svd`, which slightly obscures what dimensions will be reduced.
 Let's make the data wide first to understand the step better:
