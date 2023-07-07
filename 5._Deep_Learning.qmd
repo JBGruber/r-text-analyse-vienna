@@ -259,9 +259,8 @@ roberta_model = ClassificationModel(model_type="roberta",
                                     args=model_args)
 ```
 
-We construct a training and test set from the movie review corpus in R:
-
-Now we can train the model on the coded training set and predict the classes for the test set (if you do not have a GPU, this will take a long time, so maybe do it after the course:
+We have constructed a training and test set from the movie review corpus in R above.
+Now we can train the model on the coded training set and predict the classes for the test set (if you do not have a GPU, this will take a long time, so maybe do it after the course):
 
 ```{python roberta}
 #| output: false
