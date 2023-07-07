@@ -130,6 +130,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>analyses are far less expensive (however, the encoding step might be)</li>
 <li>the embeddings reflect the computer’s understanding of language that it learned from the training corpus</li>
 </ul>
+<p>Especially the last point makes word embedding an important pe-processing step. Think about words with a similar or the same meaning or misspelled words. In a regular document-feature matrix, they are all treated as completely distinct features. Since essentially all techniques of computational analysis of text are based on co-occurrence of words, two texts containing differently spelled words with the same meaning are treated as if they did not have this link to one another. There are several techniques that can circumvent this problem, like stemming and lemmatisation (which unify different forms of the same word), automated spelling correction or using manually created dictionaries of synonyms that can be used to join feature columns in a dfm. Word embedding techniques follow a different strategy by trying to encode the meaning of words trhough the company they keep.</p>
 <p>In this session we train an embedding model following the steps from <a href="https://smltar.com/embeddings.html">Supervised Machine Learning for Text Analysis in R</a>. For a long time, word embeddings performed similarly to other preprocessing steps. Sometimes it improved models, sometimes it didn’t. However, in the next session, we will learn about some newer embedding techniques that lead to a breakthrough as models could be trained on billions of text, reflecting a substantial “knowledge” gain for the models, that come as close as we’ve ever been to getting computers to understand the meaning of language. This unfortunately also means though, that large language model are a domain of the richest companies and research facilities and are not easy to create by individual researchers.</p>
 </section>
 <section id="training-our-own-embeddings" class="level1">
@@ -259,7 +260,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 # ℹ 2,800,806 more rows</code></pre>
 </div>
 </div>
-<p>To get to the embedding vectors of the words, we use singular value decomposition (SVD). SVD is a method for dimensionality reduction. In this case, we use <code>widely_svd</code>, which slightly obscures what dimensions will be reduced. Let’s make the data wide first to understand the step better:</p>
+<p>To get to the embedding vectors of the words, we use <strong>singular value decomposition</strong> (SVD). SVD is a method for dimensionality reduction. In this case, we use <code>widely_svd</code>, which slightly obscures what dimensions will be reduced. Let’s make the data wide first to understand the step better:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>tidy_pmi <span class="sc">|&gt;</span> </span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">id_cols =</span> item1, <span class="at">names_from =</span> item2, <span class="at">values_from =</span> pmi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -301,18 +302,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">id_cols =</span> item1, <span class="at">names_from =</span> dimension, <span class="at">values_from =</span> value)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 4,620 × 101
-   item1        `1`     `2`      `3`      `4`     `5`      `6`      `7`      `8`
-   &lt;chr&gt;      &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
- 1 damen   -0.0808  -0.0496  0.0166  -0.00670 -0.0135 -0.0295   0.00177 -0.0516 
- 2 herren  -0.0806  -0.0443  0.00937  0.00556 -0.0215 -0.0353   0.0244  -0.0569 
- 3 gemäß    0.0125  -0.0392 -0.0397  -0.0520  -0.0452  0.00684 -0.0400  -0.0414 
- 4 abs      0.00980 -0.0527 -0.0362  -0.0706  -0.0450  0.0158  -0.0599  -0.0615 
- 5 geschä…  0.0104  -0.0239 -0.0306  -0.0255  -0.0141  0.00519 -0.00201 -0.0394 
- 6 präsid… -0.0150  -0.0643 -0.0218  -0.0335   0.0207 -0.00776 -0.00680  0.00674
- 7 vergan…  0.0177  -0.0214 -0.00993  0.00954 -0.0174  0.0239   0.0398   0.0171 
- 8 sitzung  0.00621 -0.0413 -0.0407  -0.0220  -0.0287  0.0143   0.0372  -0.0302 
- 9 wahl     0.0186  -0.0243 -0.0166   0.00987 -0.0169 -0.00256  0.0106  -0.0195 
-10 neuen    0.00908 -0.0420  0.00974 -0.0158  -0.0163 -0.0147   0.0180   0.00822
+   item1         `1`    `2`      `3`      `4`     `5`      `6`      `7`      `8`
+   &lt;chr&gt;       &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
+ 1 damen     0.0808  0.0496  0.0166   0.00670 -0.0135  0.0295   0.00177 -0.0516 
+ 2 herren    0.0806  0.0443  0.00937 -0.00556 -0.0215  0.0353   0.0244  -0.0569 
+ 3 gemäß    -0.0125  0.0392 -0.0397   0.0520  -0.0452 -0.00684 -0.0400  -0.0414 
+ 4 abs      -0.00980 0.0527 -0.0362   0.0706  -0.0450 -0.0158  -0.0599  -0.0615 
+ 5 geschäf… -0.0104  0.0239 -0.0306   0.0255  -0.0141 -0.00519 -0.00201 -0.0394 
+ 6 präside…  0.0150  0.0643 -0.0218   0.0335   0.0207  0.00776 -0.00680  0.00674
+ 7 vergang… -0.0177  0.0214 -0.00993 -0.00954 -0.0174 -0.0239   0.0398   0.0171 
+ 8 sitzung  -0.00621 0.0413 -0.0407   0.0220  -0.0287 -0.0143   0.0372  -0.0302 
+ 9 wahl     -0.0186  0.0243 -0.0166  -0.00987 -0.0169  0.00256  0.0106  -0.0195 
+10 neuen    -0.00908 0.0420  0.00974  0.0158  -0.0163  0.0147   0.0180   0.00822
 # ℹ 4,610 more rows
 # ℹ 92 more variables: `9` &lt;dbl&gt;, `10` &lt;dbl&gt;, `11` &lt;dbl&gt;, `12` &lt;dbl&gt;,
 #   `13` &lt;dbl&gt;, `14` &lt;dbl&gt;, `15` &lt;dbl&gt;, `16` &lt;dbl&gt;, `17` &lt;dbl&gt;, `18` &lt;dbl&gt;,
@@ -347,11 +348,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  3 haus                 0.408
  4 wirklich             0.326
  5 sagen                0.293
- 6 zuseher              0.269
+ 6 zuseher              0.270
  7 frau                 0.262
  8 zuhörerinnen         0.259
- 9 ausspricht           0.256
-10 besucherinnen        0.256
+ 9 besucherinnen        0.256
+10 ausspricht           0.256
 11 regierungsmitglieder 0.246
 12 eingang              0.245
 13 bildschirmen         0.240
@@ -398,7 +399,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 10 frankreich  0.481
 11 beziehungen 0.473
 12 ungarn      0.455
-13 krieg       0.443
+13 krieg       0.442
 14 sanktionen  0.436
 15 abkommen    0.436
 16 jemen       0.428</code></pre>
@@ -411,7 +412,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  1 österreich      1    
  2 land            0.422
  3 menschen        0.420
- 4 ganz            0.411
+ 4 ganz            0.412
  5 geht            0.383
  6 weltweit        0.358
  7 dass            0.358

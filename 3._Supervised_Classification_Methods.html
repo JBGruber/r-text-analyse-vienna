@@ -156,7 +156,7 @@ div.csl-indent {
 ✖ dplyr::filter()  masks stats::filter()
 ✖ dplyr::lag()     masks stats::lag()
 ✖ recipes::step()  masks stats::step()
-• Search for functions across packages at https://www.tidymodels.org/find/</code></pre>
+• Use suppressPackageStartupMessages() to eliminate package startup messages</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(textrecipes)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse); <span class="fu">theme_set</span>(<span class="fu">theme_bw</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -176,6 +176,7 @@ div.csl-indent {
 ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
 </div>
 </div>
+<p>To find the currently available models, you can use this website: <a href="https://www.tidymodels.org/find/parsnip/" class="uri">https://www.tidymodels.org/find/parsnip/</a></p>
 </section>
 <section id="get-data" class="level1">
 <h1>Get data</h1>
@@ -266,26 +267,29 @@ $ label &lt;fct&gt; neg, neg, neg, neg, neg, neg, neg, neg, neg, neg, neg, neg, 
 <p>This was extremly fast, because nothing has actually been done yet. In the terminology of tidymodels, you just wrote a recipe, to actually do something, you also need to some “prepping” for the recipe and “baking” the training data:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>imdb_rec <span class="sc">%&gt;%</span> </span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">prep</span>(imdb) <span class="sc">%&gt;%</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bake</span>(<span class="at">new_data =</span> <span class="cn">NULL</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">prep</span>(<span class="fu">head</span>(imdb, <span class="dv">10</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bake</span>(<span class="at">new_data =</span> <span class="cn">NULL</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 50,000 × 10
-   label tf_text_a tf_text_about tf_text_after tf_text_all tf_text_also
-   &lt;fct&gt;     &lt;int&gt;         &lt;int&gt;         &lt;int&gt;       &lt;int&gt;        &lt;int&gt;
- 1 neg           3             3             0           2            0
- 2 neg           3             1             0           0            0
- 3 neg          19             1             1           2            3
- 4 neg           4             1             0           0            0
- 5 neg          19             1             0           2            0
- 6 neg           4             0             0           1            0
- 7 neg           6             1             0           2            1
- 8 neg           8             3             0           1            0
- 9 neg           4             0             0           0            0
-10 neg           3             0             0           0            0
-# ℹ 49,990 more rows
-# ℹ 4 more variables: tf_text_an &lt;int&gt;, tf_text_and &lt;int&gt;, tf_text_any &lt;int&gt;,
-#   tf_text_are &lt;int&gt;</code></pre>
+<pre><code># A tibble: 10 × 101
+   label tf_text_a tf_text_about tf_text_acting tf_text_action tf_text_all
+   &lt;fct&gt;     &lt;int&gt;         &lt;int&gt;          &lt;int&gt;          &lt;int&gt;       &lt;int&gt;
+ 1 neg           3             3              0              0           2
+ 2 neg           3             1              0              1           0
+ 3 neg          19             1              0              2           2
+ 4 neg           4             1              0              0           0
+ 5 neg          19             1              0              0           2
+ 6 neg           4             0              3              2           1
+ 7 neg           6             1              1              0           2
+ 8 neg           8             3              2              1           1
+ 9 neg           4             0              0              1           0
+10 neg           3             0              0              0           0
+# ℹ 95 more variables: tf_text_an &lt;int&gt;, tf_text_and &lt;int&gt;,
+#   tf_text_andrews &lt;int&gt;, tf_text_are &lt;int&gt;, tf_text_as &lt;int&gt;,
+#   tf_text_at &lt;int&gt;, tf_text_be &lt;int&gt;, tf_text_because &lt;int&gt;,
+#   tf_text_been &lt;int&gt;, tf_text_better &lt;int&gt;, tf_text_br &lt;int&gt;,
+#   tf_text_but &lt;int&gt;, tf_text_by &lt;int&gt;, tf_text_can &lt;int&gt;,
+#   tf_text_character &lt;int&gt;, tf_text_did &lt;int&gt;, tf_text_does &lt;int&gt;,
+#   tf_text_dvd &lt;int&gt;, tf_text_edwards &lt;int&gt;, tf_text_even &lt;int&gt;, …</code></pre>
 </div>
 </div>
 <p>You can see this looks very similar to the wide document feature matrix from before. But if you wanted to use the tidymodels framework for OLS or logisitc regression with survey data, the code would look almost exactly the same (just the individual steps would be different).</p>
@@ -357,16 +361,11 @@ Prediction  neg  pos
 <span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">%&gt;%</span> </span>
 <span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data_color</span>(</span>
 <span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> .estimate,</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">colors =</span> scales<span class="sc">::</span><span class="fu">col_numeric</span>(</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">fn =</span> scales<span class="sc">::</span><span class="fu">col_numeric</span>(</span>
 <span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"red"</span>, <span class="st">"orange"</span>, <span class="st">"green"</span>),</span>
 <span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">domain =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
 <span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: Since gt v0.9.0, the `colors` argument has been deprecated.
-• Please use the `fn` argument instead.
-This warning is displayed once every 8 hours.</code></pre>
-</div>
 <div class="cell-output-display">
 
 <div id="agrbjcxapj" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
@@ -904,38 +903,43 @@ This warning is displayed once every 8 hours.</code></pre>
 <li>Recall = TP / (TP + FN) = 15 / (15 + 5) = 0.75</li>
 <li>F1 Score = 2<em>(Recall </em> Precision) / (Recall + Precision) = 2<em>(0.75 </em> 0.75) / (0.75 + 0.75) = 0.75</li>
 </ul>
-<p>So in this case, the classifier has a precision of 0.75 (meaning that 75% of the emails it labeled as “spam” were actually spam), a recall of 0.75 (meaning that it correctly identified 75% of the total spam emails), and an F1 score of 0.75 (giving a balance between precision and recall). Which of these metrics is most useful depends on the task. If you detect cancer in patients, false positives are not great, but false negatives might be deadly! In this case you should optimise the recall and only look at the other metrics as an afterthought. However, most of the time, we want to get a good F1 value (rule of thumb is above 0.7 or better 0.8). Note that in most cases, we do not really care about a “positive” class as both classes are equally important. And often, we have more than 2 classes. A good strategy here is to calculate F1 for each class and reporting all values plus the average.</p>
+<p>So in this case, the classifier has a precision of 0.75 (meaning that 75% of the emails it labeled as “spam” were actually spam), a recall of 0.75 (meaning that it correctly identified 75% of the total spam emails), and an F1 score of 0.75 (giving a balance between precision and recall). Which of these metrics is most useful depends on the task. If you detect cancer in patients, false positives are not great, but false negatives might be deadly! In this case you should optimise the <strong>recall</strong> and only look at the other metrics as an afterthought. However, most of the time, we want to get a good F1 value (rule of thumb is above 0.7 or better 0.8). Note that in most cases, we do not really care about a “positive” class as both classes are equally important. And often, we have more than 2 classes. A good strategy here is to calculate F1 for each class and reporting all values plus the average.</p>
 </section>
 </section>
 <section id="alternative-models" class="level2">
 <h2 class="anchored" data-anchor-id="alternative-models">Alternative models</h2>
 <p>and a lasso logistic regression model. For this we use two more packages:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>lasso_spec <span class="ot">&lt;-</span> <span class="fu">logistic_reg</span>(<span class="at">penalty =</span> <span class="fl">0.01</span>, <span class="at">mixture =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"classification"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"glmnet"</span>)</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>imdb_wf_lasso <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(imdb_rec) <span class="sc">%&gt;%</span> </span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(lasso_spec)</span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>model_lasso <span class="ot">&lt;-</span> <span class="fu">fit</span>(imdb_wf_lasso, <span class="at">data =</span> imdb_train)</span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>imdb_prediction_lasso <span class="ot">&lt;-</span> imdb_test <span class="sc">%&gt;%</span> </span>
-<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(<span class="fu">predict</span>(model_lasso, <span class="at">new_data =</span> imdb_test)) <span class="sc">%&gt;%</span> </span>
-<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">truth =</span> label, <span class="at">estimate =</span> .pred_class)</span>
-<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>my_metrics <span class="ot">&lt;-</span> <span class="fu">metric_set</span>(accuracy, kap, precision, recall, f_meas)</span>
-<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="fu">my_metrics</span>(imdb_prediction_lasso, <span class="at">truth =</span> truth, <span class="at">estimate =</span> estimate) <span class="sc">%&gt;%</span> </span>
-<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data_color</span>(</span>
-<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> .estimate,</span>
-<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">colors =</span> scales<span class="sc">::</span><span class="fu">col_numeric</span>(</span>
-<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"red"</span>, <span class="st">"orange"</span>, <span class="st">"green"</span>),</span>
-<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>      <span class="at">domain =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
-<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>lasso_spec <span class="ot">&lt;-</span> <span class="fu">logistic_reg</span>(<span class="at">penalty =</span> <span class="fl">0.01</span>, <span class="at">mixture =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"classification"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"glmnet"</span>)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>imdb_wf_lasso <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(imdb_rec) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(lasso_spec)</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>model_lasso <span class="ot">&lt;-</span> <span class="fu">fit</span>(imdb_wf_lasso, <span class="at">data =</span> imdb_train)</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>imdb_prediction_lasso <span class="ot">&lt;-</span> imdb_test <span class="sc">%&gt;%</span> </span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(<span class="fu">predict</span>(model_lasso, <span class="at">new_data =</span> imdb_test)) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">truth =</span> label, <span class="at">estimate =</span> .pred_class)</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>my_metrics <span class="ot">&lt;-</span> <span class="fu">metric_set</span>(accuracy, kap, precision, recall, f_meas)</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a><span class="fu">my_metrics</span>(imdb_prediction_lasso, <span class="at">truth =</span> truth, <span class="at">estimate =</span> estimate) <span class="sc">%&gt;%</span> </span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data_color</span>(</span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> .estimate,</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">colors =</span> scales<span class="sc">::</span><span class="fu">col_numeric</span>(</span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>      <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"red"</span>, <span class="st">"orange"</span>, <span class="st">"green"</span>),</span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>      <span class="at">domain =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Since gt v0.9.0, the `colors` argument has been deprecated.
+• Please use the `fn` argument instead.
+This warning is displayed once every 8 hours.</code></pre>
+</div>
 <div class="cell-output-display">
 
 <div id="emlvixduja" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
@@ -1422,7 +1426,7 @@ This warning is displayed once every 8 hours.</code></pre>
 <span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(Importance, <span class="at">n =</span> <span class="dv">20</span>) <span class="sc">%&gt;%</span> </span>
 <span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">Variable =</span> <span class="fu">str_remove</span>(Variable, <span class="st">"tfidf_text_"</span>),</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">Variable =</span> <span class="fu">str_remove</span>(Variable, <span class="st">"tf_text_"</span>),</span>
 <span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">Variable =</span> <span class="fu">fct_reorder</span>(Variable, Importance)</span>
 <span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Importance, <span class="at">y =</span> Variable, <span class="at">fill =</span> Sign)) <span class="sc">+</span></span>
@@ -1481,7 +1485,7 @@ ICU version: 72.1</code></pre>
 </ol>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>test_ids <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">docnames</span>(imdb_dfm), <span class="at">size =</span> <span class="fu">length</span>(<span class="fu">docnames</span>(imdb_dfm)) <span class="sc">*</span> <span class="fl">0.15</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>test_ids <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">docnames</span>(imdb_dfm), <span class="at">size =</span> <span class="fu">length</span>(<span class="fu">docnames</span>(imdb_dfm)) <span class="sc">*</span> <span class="fl">0.25</span>)</span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>training_dfm <span class="ot">&lt;-</span> <span class="fu">dfm_subset</span>(imdb_dfm, <span class="sc">!</span><span class="fu">docnames</span>(imdb_dfm) <span class="sc">%in%</span> test_ids)</span>
 <span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>test_dfm <span class="ot">&lt;-</span> <span class="fu">dfm_subset</span>(imdb_dfm, <span class="fu">docnames</span>(imdb_dfm) <span class="sc">%in%</span> test_ids)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -1503,26 +1507,26 @@ ICU version: 72.1</code></pre>
 
      predicted_class
        neg  pos
-  neg 3280  458
-  pos  696 3066
+  neg 5441  783
+  pos 1147 5129
                                           
-               Accuracy : 0.8461          
-                 95% CI : (0.8378, 0.8542)
-    No Information Rate : 0.5301          
+               Accuracy : 0.8456          
+                 95% CI : (0.8391, 0.8519)
+    No Information Rate : 0.527           
     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
                                           
-                  Kappa : 0.6923          
+                  Kappa : 0.6913          
                                           
- Mcnemar's Test P-Value : 3.024e-12       
+ Mcnemar's Test P-Value : &lt; 2.2e-16       
                                           
-            Sensitivity : 0.8249          
-            Specificity : 0.8700          
-         Pos Pred Value : 0.8775          
-         Neg Pred Value : 0.8150          
-             Prevalence : 0.5301          
-         Detection Rate : 0.4373          
-   Detection Prevalence : 0.4984          
-      Balanced Accuracy : 0.8475          
+            Sensitivity : 0.8259          
+            Specificity : 0.8676          
+         Pos Pred Value : 0.8742          
+         Neg Pred Value : 0.8172          
+             Prevalence : 0.5270          
+         Detection Rate : 0.4353          
+   Detection Prevalence : 0.4979          
+      Balanced Accuracy : 0.8467          
                                           
        'Positive' Class : neg             
                                           </code></pre>
@@ -1539,6 +1543,11 @@ ICU version: 72.1</code></pre>
 <li><p>Use a support vector machine model instead of the naive bayes or lasso regression shown above</p></li>
 <li><p>What would be the steps and functions you need to predict the party membership of a president in the SOTU addresses data?</p></li>
 </ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sotu)</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>sotu <span class="ot">&lt;-</span> sotu<span class="sc">::</span>sotu_meta <span class="sc">|&gt;</span> </span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">text =</span> sotu<span class="sc">::</span>sotu_text)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 
 </section>
 
