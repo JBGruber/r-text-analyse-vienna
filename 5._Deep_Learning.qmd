@@ -226,6 +226,7 @@ reticulate::py_install(c(
 https://colab.research.google.com/drive/1k4nfmTcb-qm6QXKNeTQGiCUMcsDYrBhG?usp=sharing) I created.)
 To demonstrate the workflow for `reticulate`, we do the same analysis as above, but rely on Python functions:
 
+
 ```{python}
 #| message: false
 #| warning: false
@@ -290,7 +291,7 @@ my_metrics(imdb_prediction, truth = truth, estimate = estimate) |>
   gt() |>  
   data_color(
     columns = .estimate,
-    colors = scales::col_numeric(
+    fn = scales::col_numeric(
       palette = c("red", "orange", "green"),
       domain = c(0, 1)
     )

@@ -84,6 +84,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
   <li><a href="#training-our-own-embeddings" id="toc-training-our-own-embeddings" class="nav-link" data-scroll-target="#training-our-own-embeddings">Training our own embeddings</a></li>
   <li><a href="#pretrained-embeddings" id="toc-pretrained-embeddings" class="nav-link" data-scroll-target="#pretrained-embeddings">Pretrained Embeddings</a></li>
+  <li><a href="#exercises" id="toc-exercises" class="nav-link" data-scroll-target="#exercises">Exercises</a></li>
   </ul>
 </nav>
 </div>
@@ -158,18 +159,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>nested_words <span class="sc">|&gt;</span> </span>
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(speech_id, words) <span class="sc">|&gt;</span> </span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="dv">1000</span><span class="sc">:</span><span class="dv">1006</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 7 × 2
-  speech_id words            
-      &lt;int&gt; &lt;list&gt;           
-1      1001 &lt;tibble [17 × 1]&gt;
-2      1002 &lt;tibble [3 × 1]&gt; 
-3      1003 &lt;tibble [42 × 1]&gt;
-4      1004 &lt;tibble [8 × 1]&gt; 
-5      1005 &lt;tibble [57 × 1]&gt;
-6      1006 &lt;tibble [3 × 1]&gt; 
-7      1007 &lt;tibble [31 × 1]&gt;</code></pre>
+<pre><code># A tibble: 6 × 2
+  speech_id words             
+      &lt;int&gt; &lt;list&gt;            
+1         1 &lt;tibble [25 × 1]&gt; 
+2         2 &lt;tibble [123 × 1]&gt;
+3         3 &lt;tibble [24 × 1]&gt; 
+4         4 &lt;tibble [94 × 1]&gt; 
+5         5 &lt;tibble [590 × 1]&gt;
+6         6 &lt;tibble [32 × 1]&gt; </code></pre>
 </div>
 </div>
 <p>The reason for this is that in order to find the company a word keeps, we must determine where we look first. We next use a function that adds a slide window ID to the data.</p>
@@ -304,16 +304,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code># A tibble: 4,620 × 101
    item1         `1`    `2`      `3`      `4`     `5`      `6`      `7`      `8`
    &lt;chr&gt;       &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
- 1 damen     0.0808  0.0496  0.0166   0.00670 -0.0135  0.0295   0.00177 -0.0516 
- 2 herren    0.0806  0.0443  0.00937 -0.00556 -0.0215  0.0353   0.0244  -0.0569 
- 3 gemäß    -0.0125  0.0392 -0.0397   0.0520  -0.0452 -0.00684 -0.0400  -0.0414 
- 4 abs      -0.00980 0.0527 -0.0362   0.0706  -0.0450 -0.0158  -0.0599  -0.0615 
- 5 geschäf… -0.0104  0.0239 -0.0306   0.0255  -0.0141 -0.00519 -0.00201 -0.0394 
- 6 präside…  0.0150  0.0643 -0.0218   0.0335   0.0207  0.00776 -0.00680  0.00674
- 7 vergang… -0.0177  0.0214 -0.00993 -0.00954 -0.0174 -0.0239   0.0398   0.0171 
- 8 sitzung  -0.00621 0.0413 -0.0407   0.0220  -0.0287 -0.0143   0.0372  -0.0302 
- 9 wahl     -0.0186  0.0243 -0.0166  -0.00987 -0.0169  0.00256  0.0106  -0.0195 
-10 neuen    -0.00908 0.0420  0.00974  0.0158  -0.0163  0.0147   0.0180   0.00822
+ 1 damen     0.0808  0.0496  0.0166   0.00670  0.0135 -0.0295  -0.00177 -0.0516 
+ 2 herren    0.0806  0.0443  0.00937 -0.00556  0.0215 -0.0353  -0.0244  -0.0569 
+ 3 gemäß    -0.0125  0.0392 -0.0397   0.0520   0.0452  0.00684  0.0400  -0.0414 
+ 4 abs      -0.00980 0.0527 -0.0362   0.0706   0.0450  0.0158   0.0599  -0.0615 
+ 5 geschäf… -0.0104  0.0239 -0.0306   0.0255   0.0141  0.00519  0.00201 -0.0394 
+ 6 präside…  0.0150  0.0643 -0.0218   0.0335  -0.0207 -0.00776  0.00680  0.00674
+ 7 vergang… -0.0177  0.0214 -0.00993 -0.00954  0.0174  0.0239  -0.0398   0.0171 
+ 8 sitzung  -0.00621 0.0413 -0.0407   0.0220   0.0287  0.0143  -0.0372  -0.0302 
+ 9 wahl     -0.0186  0.0243 -0.0166  -0.00987  0.0169 -0.00256 -0.0106  -0.0195 
+10 neuen    -0.00908 0.0420  0.00974  0.0158   0.0163 -0.0147  -0.0180   0.00822
 # ℹ 4,610 more rows
 # ℹ 92 more variables: `9` &lt;dbl&gt;, `10` &lt;dbl&gt;, `11` &lt;dbl&gt;, `12` &lt;dbl&gt;,
 #   `13` &lt;dbl&gt;, `14` &lt;dbl&gt;, `15` &lt;dbl&gt;, `16` &lt;dbl&gt;, `17` &lt;dbl&gt;, `18` &lt;dbl&gt;,
@@ -399,10 +399,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 10 frankreich  0.481
 11 beziehungen 0.473
 12 ungarn      0.455
-13 krieg       0.442
+13 krieg       0.443
 14 sanktionen  0.436
 15 abkommen    0.436
-16 jemen       0.428</code></pre>
+16 jemen       0.429</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nearest_neighbors</span>(tidy_word_vectors, <span class="st">"österreich"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -412,13 +412,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  1 österreich      1    
  2 land            0.422
  3 menschen        0.420
- 4 ganz            0.412
+ 4 ganz            0.411
  5 geht            0.383
  6 weltweit        0.358
  7 dass            0.358
  8 nämlich         0.342
- 9 gibt            0.333
-10 wirtschaftlich  0.333
+ 9 wirtschaftlich  0.333
+10 gibt            0.333
 11 verhältnisse    0.328
 12 schweden        0.319
 13 jahren          0.316
@@ -1242,6 +1242,13 @@ Prediction neg pos
 </div>
 </div>
 <p>This interestingly worked a lot better than my own function and quanteda. But still a lot worse than what we did in the previous session! We could probably improve this by using the larger GloVe model and fitting the model on the full data. But I could no longer load this into memory then!</p>
+</section>
+<section id="exercises" class="level1">
+<h1>Exercises</h1>
+<ol type="1">
+<li><p>Create your own embedding model using your own text data and the steps shown “Training our own embeddings”</p></li>
+<li><p>Use tidymodels and to make a prediction for your text data (e.g., who wrote a specific message in your WhatsApp group)</p></li>
+</ol>
 </section>
 
 </main>

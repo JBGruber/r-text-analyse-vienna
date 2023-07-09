@@ -72,7 +72,7 @@ nested_words <- plenary_speeches_tidy_clean |>
 
 nested_words |> 
   select(speech_id, words) |> 
-  slice(1000:1006)
+  head()
 ```
 
 The reason for this is that in order to find the company a word keeps, we must determine where we look first.
@@ -446,4 +446,10 @@ This interestingly worked a lot better than my own function and quanteda.
 But still a lot worse than what we did in the previous session!
 We could probably improve this by using the larger GloVe model and fitting the model on the full data.
 But I could no longer load this into memory then!
+
+# Exercises
+
+1. Create your own embedding model using your own text data and the steps shown "Training our own embeddings"
+
+2. Use tidymodels and to make a prediction for your text data (e.g., who wrote a specific message in your WhatsApp group)
 

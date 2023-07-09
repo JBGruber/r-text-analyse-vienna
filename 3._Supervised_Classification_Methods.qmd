@@ -32,7 +32,7 @@ library(textrecipes)
 library(tidyverse); theme_set(theme_bw())
 ```
 
-To find the currently available models, you can use this website: <https://www.tidymodels.org/find/parsnip/>
+To find the currently available models, you can use this website: <https://www.tidymodels.org/find/parsnip/>.
 
 # Get data
 
